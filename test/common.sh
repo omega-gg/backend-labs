@@ -42,7 +42,7 @@ export MSYS_NO_PATHCONV=1
 # Copies the applications and the backends in the build folder. Only the newer files get copied,
 # so a rebuild gets picked up and the next runs are quick.
 #
-# 1: level, 2: labs for the vbml folder, master for the public branch.
+# 1: level, 2: labs for the vbml folder, master for the public backend repository.
 setup()
 {
     mkdir -p "$client" "$backend" "$results"
@@ -53,7 +53,16 @@ setup()
 
     if [ "$2" = "master" ]; then
 
-        git -C "$root/vbml" archive master -- '*.vbml' | tar -x -C "$backend"
+        # NOTE: We use a relative path, because MSYS_NO_PATHCONV applies to git as well.
+        (
+            cd "$root/build" || exit 1
+
+            rm -rf public
+
+            git clone --quiet --depth 1 https://github.com/omega-gg/backend public
+        )
+
+        cp "$root"/build/public/*.vbml "$backend"
     else
         cp "$root"/vbml/*.vbml "$backend"
     fi

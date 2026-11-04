@@ -1,0 +1,671 @@
+# VBML 1.0.6
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+origin: https://raw.githubusercontent.com/omega-gg/backend/master/youtube.vbml
+
+api: 1.0.1
+
+version: 1.0.128
+
+title: Youtube
+
+host: youtube.com
+
+cover: /cover/youtube.png
+
+items:
+    playlist:
+        title: Tracks
+    folder:
+        title: Channels
+    folder:
+        title: Playlists
+
+validate: ^youtube.com|^youtu.be
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "youtu.be")
+        RETURN (URL_ELEMENT url 9)
+    ELIF (EQUAL (START_WITH url "youtube.com") false)
+        RETURN
+    FI
+    SET index (INDEX_END url (REGEXP "\\?v=|&v=|/v/|/embed/|/shorts/"))
+    IF (NOT_EQUAL index -1)
+        RETURN (URL_ELEMENT url index)
+    FI
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "youtube.com") false)
+        RETURN false
+    FI
+    SET index (INDEX_OF url (REGEXP "/user/|/channel/|/c/"))
+    IF (EQUAL index -1)
+        SET index (INDEX_END url (REGEXP "\\?p=|&p=|\\?list=|&list="))
+        IF (EQUAL index -1)
+            SET index (INDEX_END (REGEXP "\\?channel_id=|&channel_id="))
+            IF (EQUAL index -1)
+                SET string (URL_ELEMENT url 12)
+                IF (GREATER (LENGTH string) 3) # We want to avoid the 'new' page.
+                AND (EQUAL (INDEX_OF url (REGEXP "[/\\?#]") 12) -1)
+                    # NOTE: We make it a feed by default.
+                    SET type "feed"
+                    SET id string
+                ELSE
+                    RETURN false
+                FI
+            ELSE
+                SET type "feed"
+                SET id (APPEND "channel/" (URL_ELEMENT url index))
+            FI
+            RETURN true
+        FI
+        SET type "playlist"
+        SET id (URL_ELEMENT url index)
+    ELSE
+        SET type "feed"
+        SET id (URL_ELEMENT url 2 (ADD index 1))
+    FI
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://www.youtube.com/watch?v=" id)
+
+URL_PLAYLIST: |
+    IF (EQUAL type "feed")
+        RETURN (APPEND "https://www.youtube.com/" id)
+    ELSE
+        RETURN (APPEND "https://www.youtube.com/playlist?list=" id)
+    FI
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "youtu.be")
+        SET videoId (URL_ELEMENT url 9)
+    ELIF (START_WITH url "youtube.com")
+        SET index (INDEX_END url (REGEXP "\\?v=|&v=|/v/|/embed/|/shorts/"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET videoId (URL_ELEMENT url index)
+    ELSE
+        RETURN false
+    FI
+    IF (COUNT global)
+        SET url "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
+        IF (EQUAL mode "safe")
+            SET header (APPEND '"Content-Type" "application/json"' \
+                               '"User-Agent" "com.google.android.youtube/20.10.38 (Linux; U; Android 11)"' \
+                               '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            SET body (APPEND '{"context": {"client": {"clientName": "ANDROID",' \
+                             '"clientVersion": "20.10.38", "androidSdkVersion": 30,' \
+                             '"userAgent": "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",' \
+                             '"osName": "Android", "osVersion": "11", "hl": "en", "timeZone": "UTC",' \
+                             '"utcOffsetMinutes": 0}}, "videoId": "' videoId '",' \
+                             '"playbackContext": {"contentPlaybackContext":' \
+                             '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                             (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+        ELSE
+            #--------------------------------------------------------------------------------------
+            # NOTE: VISIONOS seems to be more reliable than ANDROID and IOS.
+            SET header (APPEND '"Content-Type" "application/json"' \
+                               '"User-Agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"' \
+                               '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            SET body (APPEND '{"context": {"client": {"clientName": "VISIONOS",' \
+                             '"clientVersion": "1.02", "deviceMake": "Apple", "deviceModel": "RealityDevice17,1",' \
+                             '"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",' \
+                             '"osName": "visionOS", "osVersion": "26.5.23O471", "hl": "en", "timeZone": "UTC",' \
+                             '"utcOffsetMinutes": 0}}, "videoId": "' videoId '",' \
+                             '"playbackContext": {"contentPlaybackContext":' \
+                             '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                             (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+            #--------------------------------------------------------------------------------------
+        FI
+        SET queryData videoId
+        RETURN true
+    FI
+    SET url (APPEND "https://www.youtube.com/watch?v=" videoId)
+    SET id 4
+    SET queryData videoId
+    RETURN true
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "youtu.be")
+        SET string (URL_ELEMENT url 9)
+    ELIF (START_WITH url "youtube.com")
+        SET index (INDEX_END url (REGEXP "\\?v=|&v=|/v/|/embed/|/shorts/"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET string (URL_ELEMENT url index)
+    ELSE
+        RETURN false
+    FI
+    SET url (APPEND "https://www.youtube.com/watch?v=" string)
+    # NOTE: We space the track queries to avoid the 429 'Too Many Requests'.
+    SET delay 1000
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "youtube.com") false)
+        RETURN false
+    FI
+    SET index (INDEX_OF url (REGEXP "/user/|/channel/|/c/"))
+    IF (EQUAL index -1)
+        SET index (INDEX_END url (REGEXP "\\?p=|&p=|\\?list=|&list="))
+        IF (EQUAL index -1)
+            SET index (INDEX_END url (REGEXP "\\?channel_id=|&channel_id="))
+            IF (EQUAL index -1)
+                SET string (URL_ELEMENT url 12)
+                IF (GREATER (LENGTH string) 3) # We want to avoid the 'new' page.
+                AND (EQUAL (INDEX_OF url (REGEXP "[/\\?#]") 12) -1)
+                    # NOTE: We make it a feed by default.
+                    SET url (APPEND "https://www.youtube.com/" string "/videos?view=0&ucbcb=1")
+                    SET id 1
+                ELSE
+                    SET url ""
+                    RETURN false
+                FI
+            ELSE
+                SET string (APPEND "channel/" (URL_ELEMENT url index))
+                SET url (APPEND "https://www.youtube.com/" string "/videos?view=0&ucbcb=1")
+                SET id 1
+            FI
+        ELSE
+            SET string (URL_ELEMENT url index)
+            SET url (APPEND "https://www.youtube.com/playlist?list=" string)
+        FI
+    ELSE
+        SET string (URL_ELEMENT url 2 (ADD index 1))
+        SET url (APPEND "https://www.youtube.com/" string "/videos?view=0&ucbcb=1")
+        SET id 1
+    FI
+    RETURN true
+
+CREATE_QUERY: |
+    IF (EQUAL method "search")
+        IF (EQUAL label "tracks")
+            SET url "https://www.youtube.com/results"
+            URL_ADD_QUERY url "search_query" (URL_ENCODE q)
+            URL_ADD_QUERY url "sp" "EgIQAQ%253D%253D"
+            URL_ADD_QUERY url "ucbcb" "1"
+            SET id 2
+        ELIF (EQUAL label "channels")
+            SET url "https://www.youtube.com/results"
+            URL_ADD_QUERY url "search_query" (URL_ENCODE q)
+            URL_ADD_QUERY url "sp" "EgIQAg%253D%253D"
+            URL_ADD_QUERY url "ucbcb" "1"
+            SET id 1
+        ELIF (EQUAL label "playlists")
+            SET url "https://www.youtube.com/results"
+            URL_ADD_QUERY url "search_query" (URL_ENCODE q)
+            URL_ADD_QUERY url "sp" "EgIQAw%253D%253D"
+            URL_ADD_QUERY url "ucbcb" "1"
+        FI
+    ELIF (EQUAL method "related")
+    AND (EQUAL label "tracks")
+        SET url (APPEND "https://www.youtube.com/watch?v=" q)
+        SET id 3
+    FI
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 2) # Live
+        SET source (SLICE_IN data '"hlsManifestUrl":"' '"')
+        HASH_SET next "backend" "youtube"
+        HASH_SET next "url" source
+        HASH_SET next "id" 3
+    ELIF (EQUAL id 3) # Live
+        SET list (SLICES data "EXT-X-STREAM-INF" "m3u8")
+        FOREACH list value
+            SET quality (SLICE_IN value 'x' ',')
+            SET source (MID value (INDEX_OF value 'https'))
+            HASH_SET medias quality source
+        END
+    ELIF (EQUAL id 4) # Visitor
+        SET index (INDEX_OF data '"STS"')
+        LIST_APPEND global (SLICE_IN data '"VISITOR_DATA":"' '"' index)
+        LIST_APPEND global (SLICE_IN data '"STS":' ',')
+        HASH_SET next "url" "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
+        HASH_SET next "id" -1
+        IF (EQUAL mode "safe")
+            HASH_SET next "header" (APPEND '"Content-Type" "application/json"' \
+                                           '"User-Agent" "com.google.android.youtube/20.10.38 (Linux; U; Android 11)"' \
+                                           '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            HASH_SET next "body" (APPEND '{"context": {"client": {"clientName": "ANDROID",' \
+                                         '"clientVersion": "20.10.38", "androidSdkVersion": 30,' \
+                                         '"userAgent": "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",' \
+                                         '"osName": "Android", "osVersion": "11", "hl": "en", "timeZone": "UTC",' \
+                                         '"utcOffsetMinutes": 0}}, "videoId": "' queryData '",' \
+                                         '"playbackContext": {"contentPlaybackContext":' \
+                                         '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                                         (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+        ELSE
+            #--------------------------------------------------------------------------------------
+            # NOTE: VISIONOS seems to be more reliable than ANDROID and IOS.
+            HASH_SET next "header" (APPEND '"Content-Type" "application/json"' \
+                                           '"User-Agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"' \
+                                           '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            HASH_SET next "body" (APPEND '{"context": {"client": {"clientName": "VISIONOS",' \
+                                         '"clientVersion": "1.02", "deviceMake": "Apple", "deviceModel": "RealityDevice17,1",' \
+                                         '"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",' \
+                                         '"osName": "visionOS", "osVersion": "26.5.23O471", "hl": "en", "timeZone": "UTC",' \
+                                         '"utcOffsetMinutes": 0}}, "videoId": "' queryData '",' \
+                                         '"playbackContext": {"contentPlaybackContext":' \
+                                         '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                                         (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+            #--------------------------------------------------------------------------------------
+        FI
+        HASH_SET next "queryData" queryData
+    ELSE
+        # NOTE: This happens when the X-Goog-Visitor-Id has expired.
+        IF (CONTAIN data '"status":"LOGIN_REQUIRED"')
+            IF (EQUAL id -1)
+                RETURN
+            FI
+            SET global ""
+            HASH_SET next "url" (APPEND "https://www.youtube.com/watch?v=" queryData)
+            HASH_SET next "id" 4
+            HASH_SET next "queryData" queryData
+            RETURN
+        FI
+        #------------------------------------------------------------------------------------------
+        # Load "hlsManifestUrl" for a live stream
+        #------------------------------------------------------------------------------------------
+        IF (CONTAIN data '"isLive":true')
+            IF (EQUAL mode "safe")
+                SET source (SLICE_IN data '"hlsManifestUrl":"' '"')
+                HASH_SET next "backend" "youtube"
+                HASH_SET next "url" source
+                HASH_SET next "id" 3
+                RETURN
+            FI
+            HASH_SET next "url" "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
+            #--------------------------------------------------------------------------------------
+            # NOTE: ANDROID live sources seem to work better than IOS.
+            HASH_SET next "header" (APPEND '"Content-Type" "application/json"' \
+                                           '"User-Agent" "com.google.android.youtube/20.10.38 (Linux; U; Android 11)"' \
+                                           '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            HASH_SET next "body" (APPEND '{"context": {"client": {"clientName": "ANDROID", "clientVersion": "20.10.38",' \
+                                         '"userAgent": "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",' \
+                                         '"osName": "Android", "osVersion": "11", "hl": "en", "timeZone": "UTC",' \
+                                         '"utcOffsetMinutes": 0}}, "videoId": "' queryData '",' \
+                                         '"playbackContext": {"contentPlaybackContext":' \
+                                         '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                                         (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+            #--------------------------------------------------------------------------------------
+            HASH_SET next "id" 2
+            RETURN
+        FI
+        #------------------------------------------------------------------------------------------
+        # Load "formats"
+        #------------------------------------------------------------------------------------------
+        # NOTE: When the source mode is 'SourceAudio' we skip the video sources.
+        IF (NOT_EQUAL mode "audio")
+            SET sources (SLICE_IN data '"formats"' '}]')
+            SET list (SPLIT sources '},{"')
+            FOREACH list value
+                #----------------------------------------------------------------------------------
+                # Load media
+                #----------------------------------------------------------------------------------
+                SET type (MID (SLICE_IN value '"mimeType":"' '"') 6 3)
+                IF  (NOT_EQUAL type "mp4")
+                AND (NOT_EQUAL type "web")
+                    CONTINUE
+                FI
+                SET quality (SLICE_IN value '"qualityLabel":"' 'p')
+                IF (EQUAL (INDEX_OF quality (REGEXP "144|240|360|480|720|1080|1440|2160")) -1)
+                    CONTINUE
+                FI
+                #----------------------------------------------------------------------------------
+                # Extract url
+                #----------------------------------------------------------------------------------
+                SET source (SLICE_IN value '"url":"' '"')
+                HASH_SET medias quality source
+                #----------------------------------------------------------------------------------
+            END
+        FI
+        #------------------------------------------------------------------------------------------
+        # Chapters
+        #------------------------------------------------------------------------------------------
+        SET description (SLICE_IN data '"shortDescription":"' '",')
+        SET index (INDEX_OF description (REGEXP "[0-5]?[0-9]:[0-5][0-9]"))
+        IF (NOT_EQUAL index -1)
+            SET list (SLICES description (REGEXP "[0-5]?[0-9]:[0-5][0-9]") (REGEXP "\\\/n"))
+            FOREACH list value
+                SET index (INDEX_OF value (REGEXP "[^0-9:]"))
+                HASH_SET chapter "time" (MID value 0 index)
+                HASH_SET chapter "title" \
+                                 (HTML_TO_UTF8 (SIMPLIFY (CHOP (MID value (ADD index 1)) 2)))
+                LIST_APPEND chapters chapter
+            END
+        FI
+        #------------------------------------------------------------------------------------------
+        # Subtitles
+        #------------------------------------------------------------------------------------------
+        SET captions (SLICE_IN data '"captionTracks"' '],')
+        IF (LENGTH captions)
+            SET list (SPLIT captions '"},')
+            FOREACH list value
+                HASH_SET subtitle "source" (SLICE_IN value '"baseUrl":"' '"')
+                HASH_SET subtitle "title"  (SLICE_IN value '"text":"'    '"')
+                LIST_APPEND subtitles subtitle
+            END
+        FI
+        #------------------------------------------------------------------------------------------
+        # Load "adaptiveFormats"
+        #------------------------------------------------------------------------------------------
+        # NOTE: When the source mode is 'SourceSafe' we skip the adaptative sources.
+        IF (NOT_EQUAL mode "safe")
+            SET sources (SLICE_IN data '"adaptiveFormats"' '}]')
+            SET list (SPLIT sources '},{"')
+            FOREACH list value
+                IF (CONTAIN value "ec-3")
+                    IF (EQUAL (CONTAIN value "AUDIO_QUALITY_ULTRALOW") false)
+                        #--------------------------------------------------------------------------
+                        # Extract url
+                        #--------------------------------------------------------------------------
+                        SET audio (SLICE_IN value '"url":"' '"')
+                        #--------------------------------------------------------------------------
+                    FI
+                    LIST_REMOVE_AT list i
+                    CONTINUE
+                FI
+                SET i (ADD i 1)
+            END
+            IF (EQUAL (LENGTH audio) 0)
+                SET i 0
+                FOREACH list value
+                    IF (CONTAIN value "opus")
+                        IF (EQUAL (CONTAIN value "AUDIO_QUALITY_ULTRALOW") false)
+                            #----------------------------------------------------------------------
+                            # Extract url
+                            #----------------------------------------------------------------------
+                            SET audio (SLICE_IN value '"url":"' '"')
+                            #----------------------------------------------------------------------
+                        FI
+                        LIST_REMOVE_AT list i
+                        CONTINUE
+                    FI
+                    SET i (ADD i 1)
+                END
+            FI
+            IF (EQUAL (LENGTH audio) 0)
+                SET i 0
+                FOREACH list value
+                    IF (CONTAIN value "mp4a")
+                        IF (EQUAL (CONTAIN value "AUDIO_QUALITY_ULTRALOW") false)
+                            #----------------------------------------------------------------------
+                            # Extract url
+                            #----------------------------------------------------------------------
+                            SET audio (SLICE_IN value '"url":"' '"')
+                            #----------------------------------------------------------------------
+                        FI
+                        LIST_REMOVE_AT list i
+                        CONTINUE
+                    FI
+                    SET i (ADD i 1)
+                END
+            FI
+            # NOTE: When the source mode is 'SourceAudio' we skip the video sources.
+            IF (EQUAL mode "audio")
+                IF (LENGTH audio)
+                    HASH_SET medias "default" audio
+                FI
+            ELSE
+                FOREACH list value
+                    #------------------------------------------------------------------------------
+                    # Load adaptative
+                    #------------------------------------------------------------------------------
+                    SET type (MID (SLICE_IN value '"mimeType":"' '"') 6 3)
+                    IF (NOT_EQUAL type "mp4")
+                        CONTINUE
+                    FI
+                    SET quality (SLICE_IN value '"qualityLabel":"' 'p')
+                    IF (EQUAL (INDEX_OF quality (REGEXP "144|240|360|480|720|1080|1440|2160")) -1)
+                        CONTINUE
+                    FI
+                    #------------------------------------------------------------------------------
+                    # Extract url
+                    #------------------------------------------------------------------------------
+                    SET source (SLICE_IN value '"url":"' '"')
+                    # NOTE: We skip the source when it has an invalid duration.
+                    IF (CONTAIN source "&dur=0")
+                        CONTINUE
+                    FI
+                    HASH_SET medias quality source
+                    HASH_SET audios quality audio
+                    #------------------------------------------------------------------------------
+                END
+                FOREACH list value
+                    #------------------------------------------------------------------------------
+                    # Load adaptative
+                    #------------------------------------------------------------------------------
+                    SET type (MID (SLICE_IN value '"mimeType":"' '"') 6 3)
+                    IF (NOT_EQUAL type "web")
+                        CONTINUE
+                    FI
+                    SET quality (SLICE_IN value '"qualityLabel":"' 'p')
+                    IF (EQUAL (INDEX_OF quality (REGEXP "144|240|360|480|720|1080|1440|2160")) -1)
+                    # NOTE: We prioritize mp4 over webm for VLC playback reliability.
+                    OR (NOT_EQUAL (HASH_GET medias quality) "")
+                        CONTINUE
+                    FI
+                    #------------------------------------------------------------------------------
+                    # Extract url
+                    #------------------------------------------------------------------------------
+                    SET source (SLICE_IN value '"url":"' '"')
+                    # NOTE: We skip the source when it has an invalid duration.
+                    IF (CONTAIN source "&dur=0")
+                        CONTINUE
+                    FI
+                    HASH_SET medias quality source
+                    HASH_SET audios quality audio
+                    #------------------------------------------------------------------------------
+                END
+                # FIXME VLC 3.0.18: The FFmpeg demuxer seems to fix the missing bytes at the end of
+                #                   the video.
+                SET options "demux=avformat"
+            FI
+        FI
+        # NOTE: Some videos are UNPLAYABLE when fetching ANDROID_VR so we fallback to ANDROID.
+        IF (EQUAL (COUNT medias) 0)
+        AND (CONTAIN data "\"status\":\"UNPLAYABLE\"")
+        AND (EQUAL id 0)
+        AND (NOT_EQUAL mode "safe")
+            HASH_SET next "url" "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
+            HASH_SET next "header" (APPEND '"Content-Type" "application/json"' \
+                                           '"User-Agent" "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip"' \
+                                           '"X-Goog-Visitor-Id" "' (LIST_GET global 0) '"')
+            HASH_SET next "body" (APPEND '{"context": {"client": {"clientName": "ANDROID", "clientVersion": "20.10.38",' \
+                                         '"userAgent": "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",' \
+                                         '"osName": "Android", "osVersion": "11", "hl": "en", "timeZone": "UTC",' \
+                                         '"utcOffsetMinutes": 0}}, "videoId": "' queryData '",' \
+                                         '"playbackContext": {"contentPlaybackContext":' \
+                                         '{"html5Preference": "HTML5_PREF_WANTS", "signatureTimestamp": ' \
+                                         (LIST_GET global 1) '}}, "contentCheckOk": true, "racyCheckOk": true}')
+            HASH_SET next "id" 5
+            RETURN
+        FI
+    FI
+    SET expiry (ADD (DATE) 60) # Two hours
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    IF (CONTAIN data "\"hlsManifestUrl\":\"")
+        SET type "live"
+    ELSE
+        SET type "track"
+    FI
+    SET index (INDEX_OF data "=\"og:image")
+    SET cover (HTML_ATTRIBUTE data "content" index)
+    #SET cover (REPLACE cover "https://" "http://")
+    SET json (SLICE data '"videoDetails"' ',"isLiveContent"')
+    SET title (JSON_EXTRACT_UTF8 json "title")
+    SET author (JSON_EXTRACT_UTF8 json "author")
+    SET feed (JSON_EXTRACT json "channelId")
+    SET feed (APPEND "https://www.youtube.com/channel/" (URL_PATH feed))
+    SET duration (JSON_EXTRACT json "lengthSeconds")
+    SET duration (MULTIPLY duration 1000)
+    SET index (INDEX_OF data "\"uploadDate\":" index)
+    SET date (MID (JSON_EXTRACT data "uploadDate" index) 0 19)
+    SET date (DATE date "yyyy-MM-ddThh:mm:ss")
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1) # Feed
+        IF (EQUAL queryData "")
+            SET cover (HTML_ATTRIBUTE data "href" (INDEX_OF data "\"image_src\""))
+            SET title (HTML_ATTRIBUTE_UTF8 data "content" (INDEX_OF data "\"og:title\""))
+            SET index (INDEX_OF "data-uix-load-more-href=\"")
+            IF (EQUAL index -1)
+                SET url (HTML_ATTRIBUTE data "data-uix-load-more-href" index)
+                SET url (APPEND "https://www.youtube.com" (URL_DECODE url))
+                SET id 1
+                SET queryData 1
+            FI
+        ELSE
+            SET data (HTML_TO_UTF8 (JSON_EXTRACT_HTML data "content_html"))
+        FI
+        # NOTE: It can either be 'gridVideoRenderer' or 'videoRenderer'.
+        SET list (SLICES data "ideoRenderer\"" "}}}")
+        FOREACH list value
+            SET id (JSON_EXTRACT value "videoId")
+            HASH_SET track "state" "default"
+            HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 value "text")
+            HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+            LIST_APPEND tracks track
+        END
+        IF (EQUAL (COUNT tracks) 0)
+            SET list (SLICES data 'richItemRenderer":' '"contentType"')
+            FOREACH list value
+                SET id (JSON_EXTRACT value "videoId")
+                SET string (JSON_EXTRACT_UTF8 value "content" (INDEX_OF value '"title"'))
+                HASH_SET track "state" "default"
+                HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+                HASH_SET track "title" string
+                HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+                LIST_APPEND tracks track
+            END
+        FI
+    ELIF (EQUAL id 2) # Search tracks
+        SET list (SLICES data "\"videoRenderer\"" "}}}")
+        FOREACH list value
+            SET id (JSON_EXTRACT value "videoId")
+            HASH_SET track "state" "default"
+            HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 value "text")
+            HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+            LIST_APPEND tracks track
+        END
+        IF (EQUAL queryData "")
+            SET index (INDEX_OF data "class=\"branded-page-box search-pager")
+            IF (EQUAL index -1)
+                RETURN
+            FI
+            HASH_SET next "url" (APPEND "https://www.youtube.com" \
+                                        (HTML_ATTRIBUTE data "href" index))
+            HASH_SET next "id" 2
+            HASH_SET next "queryData" 1
+        FI
+    ELIF (EQUAL id 3) # Related tracks
+        SET index (INDEX_OF data ',{"continuationItemRenderer"')
+        SET token (SLICE_IN data '"token":"' '"' index)
+        IF (EQUAL token "")
+            RETURN
+        FI
+        HASH_SET next "url" "https://www.youtube.com/youtubei/v1/next"
+        HASH_SET next "id" 4
+        HASH_SET next "header" '"Content-Type" "application/json"'
+        HASH_SET next "body" (APPEND '{"context": {"client": {"clientName": "WEB", ' \
+                                     '"clientVersion": "2.20250312.04.00" }}, ' \
+                                     '"continuation": "' token '"}')
+    ELIF (EQUAL id 4) # Related tracks
+        SET data (JSON_EXTRACT data "continuationItems")
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            SET index (INDEX_OF data '"lockupMetadataViewModel"')
+            SET id (JSON_EXTRACT data "videoId" index)
+            IF (EQUAL id "")
+                CONTINUE
+            FI
+            HASH_SET track "state" "default"
+            HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 data "content" index)
+            HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+            LIST_APPEND tracks track
+        END
+    ELSE # Playlist
+        IF (EQUAL queryData "")
+            SET index (INDEX_OF data "<meta name=\"title")
+            SET title (HTML_ATTRIBUTE_UTF8 data "content" index)
+            IF (EQUAL index -1)
+                SET data (HTML_ATTRIBUTE data "data-uix-load-more-href" index)
+                HASH_SET next "url" (APPEND "https://www.youtube.com" (URL_DECODE data))
+                HASH_SET next "queryData" 1
+            FI
+        ELSE
+            SET data (HTML_TO_UTF8 (JSON_EXTRACT_HTML data "content_html"))
+        FI
+        SET list (SLICES data "\"playlistVideoRenderer\"" "}}}")
+        FOREACH list value
+            SET id (JSON_EXTRACT value "videoId")
+            HASH_SET track "state" "default"
+            HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 value "text")
+            HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+            LIST_APPEND tracks track
+        END
+    FI
+
+EXTRACT_FOLDER: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1) # Search channels
+        SET list (SLICES data "\"channelRenderer\"" "}}}")
+        FOREACH list value
+            SET id (JSON_EXTRACT value "url")
+            SET cover (JSON_EXTRACT_UTF8 value "url" (INDEX_OF value "\"thumbnails\""))
+            SET cover (MID cover 0 (INDEX_OF cover '='))
+            HASH_SET item "type" "feed"
+            HASH_SET item "state" "default"
+            HASH_SET item "source" (APPEND "https://www.youtube.com" id)
+            HASH_SET item "title" (JSON_EXTRACT_UTF8 value "simpleText")
+            HASH_SET item "cover" (APPEND "https:" cover)
+            LIST_APPEND items item
+        END
+    ELSE # Search playlists
+        SET list (SLICES data "\"lockupViewModel\"" "}}}}}}")
+        FOREACH list value
+            SET id (JSON_EXTRACT value "playlistId")
+            SET cover (JSON_EXTRACT_UTF8 value "url" (INDEX_OF value "\"primaryThumbnail\""))
+            SET cover (MID cover 0 (INDEX_OF cover '?'))
+            HASH_SET item "type" "playlist"
+            HASH_SET item "state" "default"
+            HASH_SET item "source" (APPEND "https://www.youtube.com/playlist?list=" id)
+            HASH_SET item "title" (JSON_EXTRACT_UTF8 value "content" (INDEX_OF value "\"title\""))
+            HASH_SET item "cover" cover
+            LIST_APPEND items item
+        END
+        IF (EQUAL queryData "")
+            SET index (INDEX_OF data "class=\"branded-page-box search-pager")
+            IF (EQUAL index -1)
+                RETURN
+            FI
+            HASH_SET next "url" (APPEND "https://www.youtube.com" \
+                                        (HTML_ATTRIBUTE data "href" index))
+            HASH_SET next "id" id
+            HASH_SET next "queryData" 1
+        FI
+    FI

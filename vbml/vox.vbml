@@ -1,0 +1,112 @@
+# VBML 1.0.3
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/vox.vbml
+
+api: 1.0.3
+
+version: 1.0.7
+
+title: vox
+
+host: vox.omega.gg
+
+cover: /cover/vox.png
+
+items:
+    playlist:
+        title: Tracks
+
+validate: ^vox.omega.gg
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (CONTAIN url (REGEXP "/(watch|w)/(?!.*/)")) false)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN ""
+    FI
+    RETURN url
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(video-channels|c)/(?!.*/)"))
+    IF (EQUAL index -1)
+        SET index (INDEX_OF url (REGEXP "/(video-playlists|p)/(?!.*/)"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET type "playlist"
+        SET path "/api/v1/video-playlists/"
+    ELSE
+        SET type "feed"
+        SET path "/api/v1/video-channels/"
+    FI
+    SET id (APPEND queryData path (MID url (INDEX_END url '/' (ADD index 1))) \
+                   /videos?start=0&count=100&sort=-publishedAt&skipCount=true&nsfw=false)
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://" id)
+
+URL_PLAYLIST: |
+    RETURN (APPEND "https://" id)
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(watch|w)/(?!.*/)"))
+    IF (EQUAL index -1)
+        RETURN false
+    FI
+    SET backend "peertube"
+    SET url (APPEND "https://" url)
+    RETURN true
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(watch|w)/(?!.*/)"))
+    IF (EQUAL index -1)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN false
+    FI
+    SET backend "peertube"
+    SET url (APPEND "https://" url)
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(video-channels|c)/(?!.*/)"))
+    IF (EQUAL index -1)
+        SET index (INDEX_OF url (REGEXP "/(video-playlists|p)/(?!.*/)"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+    FI
+    SET backend "peertube"
+    SET url (APPEND "https://" url)
+    RETURN true
+
+CREATE_QUERY: |
+    IF (EQUAL label "tracks")
+        IF (EQUAL method "search")
+            SET url "vox.omega.gg"
+            URL_ADD_QUERY url "search" (URL_ENCODE q)
+            SET url (APPEND "vbml:run?backend=peertube&method=search&label=tracks&q=" url)
+        ELIF (EQUAL method "related")
+            SET url (APPEND "vbml:run?backend=peertube&method=related&label=tracks&q=" \
+                            (URL_ENCODE q))
+            IF (LENGTH t)
+                SET url (APPEND url "&t=" t)
+            FI
+        FI
+    ELIF (EQUAL method "view")
+    AND (CONTAIN q "/trending")
+        SET url (APPEND "vbml:run?backend=peertube&method=view&q=" q)
+    FI

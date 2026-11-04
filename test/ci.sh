@@ -4,8 +4,7 @@ set -e
 # Runs what the CI runs, on Windows. It builds clientVBML when clientVBML or Sky changed, and
 # compares the results with the CI baseline.
 #
-# Usage: sh ci.sh [extract | stream | throttle] [branch of the backend repository]
-#        sh ci.sh measure
+# Usage: sh ci.sh [extract | stream | throttle | measure]
 
 #--------------------------------------------------------------------------------------------------
 # Settings
@@ -14,8 +13,6 @@ set -e
 root=$(dirname "$(dirname "$(readlink -f "$0")")")
 
 level=${1:-extract}
-
-branch=${2:-master}
 
 source="https://github.com/omega-gg"
 
@@ -44,15 +41,6 @@ if [ "$(cat build/ci/bin/version 2> /dev/null)" != "$version" ]; then
     sh test/build-client.sh
 
     echo "$version" > build/ci/bin/version
-fi
-
-#--------------------------------------------------------------------------------------------------
-# Backends
-#--------------------------------------------------------------------------------------------------
-
-if [ ! -d vbml ]; then
-
-    git clone --depth 1 --branch "$branch" $source/backend vbml
 fi
 
 #--------------------------------------------------------------------------------------------------

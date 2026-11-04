@@ -79,6 +79,18 @@ web="{\"context\": {\"client\": {\"clientName\": \"WEB\", \"clientVersion\": \"2
       \"hl\": \"en\", \"gl\": \"US\"}}, \"videoId\": \"$id\",
       \"contentCheckOk\": true, \"racyCheckOk\": true}"
 
+# NOTE: The client that the backend uses in safe mode, which clientVBML can't reach.
+android="{\"context\": {\"client\": {\"clientName\": \"ANDROID\", \"clientVersion\": \"20.10.38\",
+          \"androidSdkVersion\": 30, \"osName\": \"Android\", \"osVersion\": \"11\", \"hl\": \"en\",
+          \"visitorData\": \"$visitor\"}}, \"videoId\": \"$id\",
+          \"contentCheckOk\": true, \"racyCheckOk\": true}"
+
+printf 'android status: '
+curl -s --compressed -X POST "$player" -H "Content-Type: application/json" -d "$android" \
+     -H "User-Agent: com.google.android.youtube/20.10.38 (Linux; U; Android 11)" \
+     | grep -o '"status":"[A-Z_]*"\|"itag":18,' | head -2 | tr '\n' ' '
+echo ""
+
 printf 'metadata with fields: '
 post '&$fields=playabilityStatus.status,microformat.playerMicroformatRenderer(uploadDate,publishDate),videoDetails(videoId,title,author,channelId,lengthSeconds,isLiveContent,thumbnail)' \
      "$web" -o /dev/null -w "$fields"

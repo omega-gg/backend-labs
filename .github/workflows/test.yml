@@ -14,9 +14,6 @@ on:
         type: choice
         options: [extract, stream, throttle, measure]
         default: extract
-      backend:
-        description: Branch of omega-gg/backend to test
-        default: master
 
 jobs:
   test:
@@ -35,8 +32,7 @@ jobs:
       - shell: bash
         env:
           LEVEL: ${{ inputs.level || 'extract' }}
-          BACKEND: ${{ inputs.backend || 'master' }}
-        run: sh test/ci.sh "$LEVEL" "$BACKEND"
+        run: sh test/ci.sh "$LEVEL"
 
       # NOTE: We keep the build even when a test fails.
       - uses: actions/cache/save@v6

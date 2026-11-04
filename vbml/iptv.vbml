@@ -1,0 +1,70 @@
+# VBML 1.0.3
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/iptv.vbml
+
+api: 1.0.3
+
+version: 1.0.9
+
+title: IPTV
+
+cover: /cover/iptv.png
+
+items:
+    playlist:
+        title: Tracks
+
+validate: ^itpv:
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+CREATE_QUERY: |
+    IF (NOT_EQUAL method "search")
+    OR (NOT_EQUAL label "tracks")
+        RETURN
+    FI
+    SET url "https://iptv-org.github.io/api/streams.json"
+    SET queryData q
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1)
+        FOREACH queryData item
+            SET title (LIST_GET item 1)
+            SET index (INDEX_OF data (APPEND '"id":"' title '"'))
+            # NOTE: When we can't find the id we add the source anyway, it should not be nsfw.
+            IF (NOT_EQUAL index -1)
+                IF (EQUAL (SLICE_IN data '"is_nsfw":' ',' index) "true")
+                    CONTINUE
+                FI
+                HASH_SET track "cover" (SLICE_IN data '"logo":"' '"' index)
+            FI
+            HASH_SET track "source" (LIST_GET item 0)
+            HASH_SET track "title" title
+            LIST_APPEND tracks track
+        END
+    ELSE
+        SET queryData (LOWER (REPLACE queryData ' ' ''))
+        SET list (SLICES_IN data '"channel":"' '}')
+        FOREACH list item
+            SET title (MID item 0 (INDEX_OF item '"'))
+            IF (CONTAIN (LOWER (REPLACE title '.' '')) queryData)
+                SET source (SLICE_IN item '"url":"' '"')
+                IF (LENGTH source)
+                    LIST_APPEND sources (LIST source title)
+                FI
+            FI
+        END
+        IF (COUNT sources)
+            HASH_SET next "url" "https://iptv-org.github.io/api/channels.json"
+            HASH_SET next "id" 1
+            HASH_SET next "queryData" sources
+        FI
+    FI

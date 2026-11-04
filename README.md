@@ -12,12 +12,13 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 | Path | Content |
 | --- | --- |
 | `manual.md` | How to run the tests |
+| `resync.md` | How to apply our changes to the public backend repository |
 | `implementation.md` | Technical findings |
 | `doc/plan/` | Plans |
 | `test/` | CLI test suite for every backend, with a baseline for home connections and one for the CI |
 | `.github/` | CI workflow that runs the test suite |
 | `reference.lock` | Commit of each clone below |
-| `vbml/` | Clone of the public backend repository, not committed here |
+| `vbml/` | Our backends, synced with the public backend repository from time to time |
 | `reference/` | Clones of yt-dlp, NewPipeExtractor and YoutubeExplode, not committed here |
 
 ## Setup
@@ -25,8 +26,8 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 The clones keep their own history, which keeps this repository small.
 
 ```sh
-sh setup.sh    # clones everything at the commits in reference.lock
-sh pull.sh     # pulls everything, updates reference.lock, reports YouTube client changes
+sh setup.sh    # clones reference at the commits in reference.lock
+sh pull.sh     # pulls reference, updates reference.lock, reports YouTube client changes
 ```
 
 ## Using the reference projects
@@ -37,6 +38,6 @@ Record protocol facts like endpoints, fields and client strings, and never trans
 
 See [manual.md](manual.md) for how to run the tests.
 
-## Exporting
+## Syncing with the public backend
 
-Work happens on a local `labs` branch in `vbml/`. Deploy builds fetch backends from `master` of the public repository when versions change, so a push reaches every installed player. A backend gets merged and pushed only after passing the test suite.
+Fixes are committed here under `vbml/`. Deploy builds fetch backends from `master` of the public repository when versions change, so a push there reaches every installed player. Syncing is a deliberate step, only after a backend passes the test suite. `sh resync.sh` lists what is pending, and [resync.md](resync.md) explains how to apply it.

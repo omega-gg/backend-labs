@@ -1,0 +1,196 @@
+# VBML 1.0.1
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+# NOTE Vimeo: Due to EU regulations, the search API is not accessible at the moment.
+# NOTE Vimeo: We're calling intermediaries urls with http because Vimeo uses a TLS handshake check
+#             to ensure that we're on a 'well known' web browser.
+# UPDATE: Adding 'accept text/html' to the header seems to fix it.
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/vimeo.vbml
+
+api: 1.0.1
+
+version: 1.0.10
+
+title: Vimeo
+
+host: vimeo.com
+
+cover: /cover/vimeo.png
+
+validate: ^vimeo.com
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET id (LAST_INDEX_END url '/')
+    IF (EQUAL id -1)
+        RETURN ""
+    FI
+    SET id (URL_ELEMENT url id)
+    IF (EQUAL id 0)
+    OR (EQUAL (NUMBER id) 0)
+        RETURN ""
+    FI
+    RETURN id
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "vimeo.com") false)
+    OR (NOT_EQUAL (COUNT_STRING url '/') 1)
+        RETURN false
+    FI
+    SET id (URL_ELEMENT url 10)
+    IF (EQUAL id "")
+    OR (NUMBER id)
+        RETURN false
+    FI
+    SET type "feed"
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://vimeo.com/" id)
+
+URL_PLAYLIST: |
+    RETURN (APPEND "https://vimeo.com/" id)
+
+QUERY_SOURCE: |
+    SET id (LAST_INDEX_END url '/')
+    IF (EQUAL id -1)
+        RETURN false
+    FI
+    SET id (URL_ELEMENT url id)
+    IF (EQUAL id "")
+    OR (EQUAL (NUMBER id) 0)
+        RETURN false
+    FI
+    IF (EQUAL global "")
+        SET url "https://vimeo.com/_next/viewer"
+        SET header '"accept" "text/html"'
+        SET queryData id
+    ELSE
+        SET url (APPEND "https://api.vimeo.com/videos/" id "?fields=download")
+        SET id 1
+        SET header (APPEND '"Authorization" "' global '"')
+    FI
+    RETURN true
+
+QUERY_TRACK: |
+    SET id (LAST_INDEX_END url '/')
+    IF (EQUAL id -1)
+        RETURN false
+    FI
+    SET id (URL_ELEMENT url id)
+    IF (EQUAL id "")
+    OR (EQUAL (NUMBER id) 0)
+        RETURN false
+    FI
+    IF (EQUAL global "")
+        SET url "https://vimeo.com/_next/viewer"
+        SET header '"accept" "text/html"'
+        SET queryData id
+    ELSE
+        SET url (APPEND "https://api.vimeo.com/videos/" id \
+                        "?fields=name%2Cpictures%2Cuploader.name%2Cuploader.link%2C" \
+                        "duration%2Cmodified_time")
+        SET id 1
+        SET header (APPEND '"Authorization" "' global '"')
+    FI
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "vimeo.com") false)
+    OR (NOT_EQUAL (COUNT_STRING url '/') 1)
+        RETURN false
+    FI
+    SET id (URL_ELEMENT url 10)
+    IF (EQUAL id "")
+    OR (NUMBER id)
+        RETURN false
+    FI
+    IF (EQUAL global "")
+        SET url "https://vimeo.com/_next/viewer"
+        SET header '"accept" "text/html"'
+        SET queryData id
+    ELSE
+        SET url (APPEND "https://api.vimeo.com/users/" id "?fields=link%2Cname%2Cpictures")
+        SET header (APPEND '"Authorization" "' global '"')
+        SET queryData id
+        SET id 1
+    FI
+    RETURN true
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1)
+        SET data (JSON_EXTRACT_HTML data "download")
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            HASH_SET medias (JSON_EXTRACT data "height") (JSON_EXTRACT data "link")
+        END
+        RETURN
+    FI
+    SET global (APPEND "jwt " (JSON_EXTRACT data "jwt"))
+    HASH_SET next "url" (APPEND "https://api.vimeo.com/videos/" queryData "?fields=download")
+    HASH_SET next "id" 1
+    HASH_SET next "header" (APPEND '"Authorization" "' global '"')
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1)
+        SET title (JSON_EXTRACT_UTF8 data "name")
+        SET cover (JSON_EXTRACT data "base_link")
+        SET cover (APPEND cover "_1920.jpg")
+        SET string (JSON_EXTRACT data "uploader")
+        SET feed (JSON_EXTRACT string "link")
+        SET author (JSON_EXTRACT_UTF8 string "name")
+        SET duration (JSON_EXTRACT data "duration")
+        SET duration (MULTIPLY duration 1000)
+        SET date (JSON_EXTRACT data "modified_time")
+        SET date (MID date 0 (LAST_INDEX_OF date '+'))
+        SET date (DATE date "yyyy-MM-ddThh:mm:ss")
+        RETURN
+    FI
+    SET global (APPEND "jwt " (JSON_EXTRACT data "jwt"))
+    HASH_SET next "url" (APPEND "https://api.vimeo.com/videos/" queryData \
+                                "?fields=name%2Cpictures%2Cuploader.name%2Cuploader.link%2C" \
+                                "duration%2Cmodified_time")
+    HASH_SET next "id" 1
+    HASH_SET next "header" (APPEND '"Authorization" "' global '"')
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1) // Feed
+        SET title (JSON_EXTRACT_UTF8 data "name")
+        SET cover (JSON_EXTRACT data "base_link")
+        HASH_SET next "url" (APPEND "https://api.vimeo.com/users/" queryData "/videos")
+        HASH_SET next "id" 2
+        HASH_SET next "header" (APPEND '"Authorization" "' global '"')
+        RETURN
+    ELIF (EQUAL id 2) // Tracks
+        SET data (JSON_EXTRACT_HTML data "data")
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            HASH_SET track "source" (JSON_EXTRACT data "link")
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 data "name")
+            SET cover (JSON_EXTRACT data "base_link")
+            HASH_SET track "cover" (APPEND cover "_1920.jpg")
+            LIST_APPEND tracks track
+        END
+        RETURN
+    FI
+    SET global (APPEND "jwt " (JSON_EXTRACT data "jwt"))
+    HASH_SET next "url" (APPEND "https://api.vimeo.com/users/" queryData \
+                                "?fields=link%2Cname%2Cpictures")
+    HASH_SET next "id" 1
+    HASH_SET next "header" (APPEND '"Authorization" "' global '"')
+    HASH_SET next "queryData" queryData
+
+QUERY_FAILED: |
+    SET global ""

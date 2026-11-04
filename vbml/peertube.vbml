@@ -1,0 +1,233 @@
+# VBML 1.0.3
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/peertube.vbml
+
+api: 1.0.3
+
+version: 1.0.28
+
+title: PeerTube
+
+host: peertube.fr
+
+cover: /cover/peertube.png
+
+items:
+    playlist:
+        title: Tracks
+
+validate: /(watch|w/p|w|video-channels|c)/(?!.*/)
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (CONTAIN url (REGEXP "/(watch|w)/(?!.*/)")) false)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN ""
+    FI
+    RETURN url
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(video-channels|c)/(?!.*/)"))
+    IF (EQUAL index -1)
+        SET index (INDEX_OF url (REGEXP "/(video-playlists|p)/(?!.*/)"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET type "playlist"
+        SET path "/api/v1/video-playlists/"
+    ELSE
+        SET type "feed"
+        SET path "/api/v1/video-channels/"
+    FI
+    SET id (APPEND queryData path (MID url (INDEX_END url '/' (ADD index 1))) \
+                   /videos?start=0&count=100&sort=-publishedAt&skipCount=true&nsfw=false)
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://" id)
+
+URL_PLAYLIST: |
+    RETURN (APPEND "https://" id)
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(watch|w)/(?!.*/)"))
+    IF (EQUAL index -1)
+        RETURN false
+    FI
+    SET url (APPEND "https://" (MID url 0 index) "/api/v1/videos/" \
+                    (MID url (INDEX_END url '/' (ADD index 1))))
+    RETURN true
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(watch|w)/(?!.*/)"))
+    IF (EQUAL index -1)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN false
+    FI
+    SET queryData (MID url 0 index)
+    SET url (APPEND "https://" queryData "/api/v1/videos/" \
+                    (MID url (INDEX_END url '/' (ADD index 1))))
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET index (INDEX_OF url (REGEXP "/(video-channels|c)/(?!.*/)"))
+    IF (EQUAL index -1)
+        SET index (INDEX_OF url (REGEXP "/(video-playlists|p)/(?!.*/)"))
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET path "/api/v1/video-playlists/"
+    ELSE
+        SET path "/api/v1/video-channels/"
+    FI
+    SET queryData (MID url 0 (INDEX_OF url '/'))
+    SET url (APPEND "https://" queryData path (MID url (INDEX_END url '/' (ADD index 1))) \
+                    /videos?start=0&count=100&sort=-publishedAt&skipCount=true&nsfw=false)
+    RETURN true
+
+CREATE_QUERY: |
+    IF (EQUAL label "tracks")
+        IF (EQUAL method "search")
+            SET id 1
+            IF (START_WITH q "site:")
+                SET queryData (SLICE_IN q "site:" ' ')
+                SET index (INDEX_OF q ' ')
+                SET q (MID q (ADD index 1))
+                SET url (APPEND "https://" queryData "/api/v1/videos?search=" \
+                                (URL_ENCODE q) "&count=100&skipCount=true&nsfw=false")
+            ELSE
+                SET queryData "sepiasearch.org"
+                SET url (APPEND "https://" queryData "/api/v1/search/videos?search=" \
+                                (URL_ENCODE q) "&count=100&skipCount=true&nsfw=false")
+            FI
+        ELIF (EQUAL method "related")
+            SET index (INDEX_OF q (REGEXP "/(watch|w)/(?!.*/)"))
+            IF (EQUAL index -1)
+                RETURN false
+            FI
+            SET id 2
+            SET queryData (LIST q t)
+            SET url (APPEND "https://" (MID q 0 index) "/api/v1/videos/" \
+                            (MID q (INDEX_END q '/' (ADD index 1))))
+        FI
+    ELIF (EQUAL method "view")
+    AND (CONTAIN q "/trending")
+        SET id 1
+        SET queryData (MID q 0 (INDEX_OF q '/'))
+        SET url (APPEND "https://" queryData \
+                        "/api/v1/videos?start=0&count=100&sort=-trending&skipCount=true&nsfw=false")
+    FI
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    # NOTE: We prioritize the hls stream.
+    SET content (JSON_EXTRACT data "streamingPlaylists")
+    IF (LENGTH content)
+        HASH_SET medias "default" (JSON_EXTRACT content "playlistUrl")
+        #SET content (JSON_EXTRACT content "files")
+        #SET list (JSON_SPLIT content)
+        #FOREACH list data
+        #    SET quality (CHOP (JSON_EXTRACT data "label") 1)
+        #    HASH_SET medias quality (JSON_EXTRACT data "playlistUrl")
+        #END
+    # NOTE: When the hls stream is empty we fallback to raw files.
+    ELSE
+        SET content (JSON_EXTRACT data "files")
+        SET list (JSON_SPLIT content)
+        FOREACH list data
+            SET quality (CHOP (JSON_EXTRACT data "label") 1)
+            HASH_SET medias quality (JSON_EXTRACT data "fileDownloadUrl")
+        END
+    FI
+    IF (NOT_EQUAL (COUNT medias) 1)
+        RETURN
+    FI
+    SET url (HASH_GET medias quality)
+    IF (NOT_EQUAL (URL_EXTENSION url) "vbml")
+        RETURN
+    FI
+    HASH_SET next "backend" "vbml"
+    HASH_SET next "url" url
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    SET title (JSON_EXTRACT_UTF8 data "name")
+    SET index (INDEX_OF data "\"channel\"")
+    SET feed (JSON_EXTRACT data "url" index)
+    SET author (JSON_EXTRACT_UTF8 data "name" index)
+    SET url (JSON_EXTRACT data "fileDownloadUrl")
+    IF (EQUAL (URL_EXTENSION url) "vbml")
+        HASH_SET next "backend" "vbml"
+        HASH_SET next "url" url
+        RETURN
+    FI
+    # NOTE: We only load the cover on a native track to optimize bandwidth.
+    SET cover (APPEND "https://" queryData (JSON_EXTRACT data "previewPath"))
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 2) # Related
+        SET url (JSON_EXTRACT data "fileDownloadUrl")
+        IF (EQUAL (URL_EXTENSION url) "vbml")
+            SET t (LIST_GET queryData 1)
+            # NOTE: When a time is set we let the client handle the related tracks.
+            IF (LENGTH t)
+                HASH_SET next "url" (APPEND \
+                                     "vbml:run?backend=vbml&method=related&label=tracks&q=" url \
+                                     "&t=" t)
+                RETURN
+            FI
+            SET queryData (LIST_GET queryData 0)
+            SET queryData (MID queryData 0 (INDEX_OF queryData '/'))
+            HASH_SET next "id" 3
+            HASH_SET next "queryData" (LIST queryData url)
+        ELSE
+            SET queryData (LIST_GET queryData 0)
+            SET queryData (MID queryData 0 (INDEX_OF queryData '/'))
+            HASH_SET next "queryData" queryData
+        FI
+        SET list (JSON_SPLIT (JSON_EXTRACT_UTF8 data "tags"))
+        FOREACH list data
+            SET tags (APPEND tags "&tagsOneOf=" data)
+        END
+        HASH_SET next "url" (APPEND "https://" queryData "/api/v1/search/videos?start=0&count=20" \
+                                    tags "&sort=-publishedAt&searchTarget=local")
+    ELSE # Tracks
+        IF (EQUAL id 3) # Related VBML
+            HASH_SET next "url" (APPEND "vbml:run?backend=vbml&method=related&label=tracks&q=" \
+                                        (LIST_GET queryData 1))
+            SET queryData (LIST_GET queryData 0)
+        FI
+        SET queryData (APPEND "https://" queryData)
+        IF (EQUAL id 0) # Playlist
+            SET channel (JSON_EXTRACT data "channel")
+            SET title (JSON_EXTRACT_UTF8 channel "displayName")
+            SET channel (JSON_EXTRACT channel "avatars")
+            IF (NOT_EQUAL channel "")
+                SET cover (APPEND queryData (JSON_EXTRACT channel "path" \
+                                                          (LAST_INDEX_OF channel "\"path\"")))
+            FI
+        FI
+        SET data (JSON_EXTRACT data "data")
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            SET host (JSON_EXTRACT data "host")
+            HASH_SET track "source" (APPEND host "/w/" (JSON_EXTRACT data "shortUUID"))
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 data "name")
+            HASH_SET track "cover" (APPEND host (JSON_EXTRACT data "previewPath"))
+            LIST_APPEND tracks track
+        END
+    FI

@@ -44,7 +44,7 @@ while read -r path url branch hash <&3; do
 
     old=$(git -C "$repository" rev-parse "$branch")
 
-    # NOTE: We only fast forward, so local work like the labs branch in vbml stays as it is.
+    # NOTE: We only fast forward, because there's no work of ours in these.
     if [ "$(git -C "$repository" rev-parse --abbrev-ref HEAD)" = "$branch" ]; then
 
         git -C "$repository" pull --quiet --ff-only origin "$branch"

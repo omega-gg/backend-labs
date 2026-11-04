@@ -1,0 +1,85 @@
+# VBML 1.0.0
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: index
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/index.vbml
+
+api: 1.0.0
+
+version: 1.0.289
+
+#--------------------------------------------------------------------------------------------------
+# Backends
+#--------------------------------------------------------------------------------------------------
+
+backend_hub: |
+    tmdb
+    twitch
+
+backend_search: |
+    duckduckgo
+
+backend_track: |
+    duckduckgo
+    youtube
+    bittorrent
+    twitch
+    tmdb
+    lastfm
+    soundcloud
+    tiktok
+    facebook
+    dailymotion
+    peertube
+    iptv
+
+backend_cover: |
+    tmdb
+    lastfm
+
+backend_subtitle: |
+    opensubtitles
+
+#--------------------------------------------------------------------------------------------------
+
+backends: |
+    duckduckgo    DuckDuckGo    1.0.15  ^html.duckduckgo.com
+    bittorrent    BitTorrent    1.0.24  .torrent$|^magnet:?
+    youtube       Youtube       1.0.128 ^youtube.com|^youtu.be
+    dailymotion   Dailymotion   1.0.6   ^dailymotion.com|^games.dailymotion.com
+    vimeo         Vimeo         1.0.10  ^vimeo.com
+    twitter       Twitter       1.0.3   ^twitter.com|^x.com
+    facebook      Facebook      1.0.10  ^facebook.com
+    odysee        Odysee        1.0.9   ^odysee.com
+    twitch        Twitch        1.0.30  ^twitch.tv
+    iptv          IPTV          1.0.9   ^iptv:
+    tiktok        TikTok        1.0.9   ^tiktok.com
+    soundcloud    SoundCloud    1.0.11  ^soundcloud.com
+    tmdb          TMDB          1.0.36  ^themoviedb.org
+    lastfm        Last.fm       1.0.7   ^last.fm
+    opensubtitles OpenSubtitles 1.0.11  ^dl.opensubtitles.org
+    peertube      PeerTube      1.0.28  /(watch|w/p|w|video-channels|c)/(?!.*/)
+
+covers: |
+    duckduckgo  cover/duckduckgo.png
+    bittorrent  cover/bittorrent.png
+    youtube     cover/youtube.png
+    dailymotion cover/dailymotion.png
+    vimeo       cover/vimeo.png
+    twitter     cover/twitter.png
+    facebook    cover/facebook.png
+    odysee      cover/odysee.png
+    peertube    cover/peertube.png
+    twitch      cover/twitch.png
+    iptv        cover/iptv.png
+    tiktok      cover/tiktok.png
+    soundcloud  cover/soundcloud.png
+    tmdb        cover/tmdb.png
+    lastfm      cover/lastfm.png
+
+hubs: |
+    tmdb   https://vox.omega.gg/w/9d5fYXTcjLHReVUQabKRwB
+    twitch https://vox.omega.gg/w/1bygNVLjD7P5Ande3BKktN

@@ -1,0 +1,284 @@
+# VBML 1.0.1
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/opensubtitles.vbml
+
+api: 1.0.1
+
+version: 1.0.11
+
+title: OpenSubtitles
+
+host: opensubtitles.org
+
+validate: ^dl.opensubtitles.org
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+QUERY_ITEM: |
+    IF (EQUAL (START_WITH (URL_REMOVE_PREFIX url) "dl.opensubtitles.org") false)
+    OR (EQUAL (CONTAIN url "/subtitles/") false)
+        RETURN false
+    FI
+    SET cookies true
+    #----------------------------------------------------------------------------------------------
+    # FIXME OpenSubtitles: We have to delay our requests to avoid the captcha.
+    #----------------------------------------------------------------------------------------------
+    SET maxHost 1
+    SET delay 1000
+    #----------------------------------------------------------------------------------------------
+    # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+    #----------------------------------------------------------------------------------------------
+    SET timeout 10000
+    #----------------------------------------------------------------------------------------------
+    RETURN true
+
+CREATE_QUERY: |
+    IF (NOT_EQUAL method "subtitles")
+        RETURN
+    FI
+    SET listA "afrikaans" "albanian" "arabic" "aragonese" "asturian" "azerbaijani" "basque" \
+              "belarusian" "bosnian" "breton" "bulgarian" "burmese" "catalan" "chinese" \
+              "chinese (tr)" "chinese (bi)" "croatian" "czech" "danish" "dutch" "english" \
+              "esperanto" "estonian" "finnish" "french" "gaelic" "galician" "georgian" "german" \
+              "greek" "hebrew" "hindi" "hungarian" "icelandic" "indonesian" "irish" "italian" \
+              "japanese" "kannada" "kazakh" "khmer" "korean" "kurdish" "latvian" "lithuanian" \
+              "macedonian" "malay" "malayalam" "norwegian" "occitan" "persian" "polish" \
+              "portuguese" "portuguese (br)" "portuguese (mz)" "romanian" "russian" "serbian" \
+              "sinhala" "slovak" "slovenian" "spanish" "spanish (eu)" "spanish (la)" "swedish" \
+              "tamil" "telugu" "thai" "turkish" "ukranian" "vietnamese"
+    SET listB "afr" "alb" "ara" "arg" "ast" "aze" "baq" "bel" "bos" "bre" "bul" "bur" "cat" "chi" \
+              "zht" "zhe" "hrv" "cze" "dan" "dut" "eng" "epo" "est" "fin" "fre" "gla" "glg" "geo" \
+              "ger" "ell" "heb" "hin" "hun" "ice" "ind" "gle" "ita" "jpn" "kan" "kaz" "khm" "kor" \
+              "kur" "lav" "lit" "mac" "may" "mal" "nor" "oci" "per" "pol" "por" "pob" "pom" "rum" \
+              "rus" "scc" "sin" "slo" "slv" "spa" "spn" "spl" "swe" "tam" "tel" "tha" "tur" "urk" \
+              "vie"
+    SET index (LIST_INDEX listA label)
+    IF (EQUAL index -1)
+        SET language "eng"
+    ELSE
+        SET language (LIST_GET listB index)
+    FI
+    SET q (SIMPLIFY q)
+    SET url (APPEND "https://dl.opensubtitles.org/en/search/sublanguageid-" language \
+                    "/subsumcd-1/subformat-srt/moviename-" (URL_ENCODE q))
+    SET queryData (LIST language q)
+    SET cookies true
+    #----------------------------------------------------------------------------------------------
+    # FIXME OpenSubtitles: We have to delay our requests to avoid the captcha.
+    #----------------------------------------------------------------------------------------------
+    SET maxHost 1
+    SET delay 1000
+    #----------------------------------------------------------------------------------------------
+    # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+    #----------------------------------------------------------------------------------------------
+    SET timeout 10000
+    #----------------------------------------------------------------------------------------------
+
+EXTRACT_FOLDER: |
+    # NOTE: We have been redirected to a subtitle page.
+    IF (EQUAL id 0)
+    AND (CONTAIN urlRedirect "/subtitles/")
+        SET search (LIST_GET queryData 1)
+        HASH_SET item "type" "item"
+        HASH_SET item "state" "default"
+        HASH_SET item "source" urlRedirect
+        HASH_SET item "title" search
+        LIST_APPEND items item
+        #------------------------------------------------------------------------------------------
+        # Get query
+        #------------------------------------------------------------------------------------------
+        IF (CONTAIN search (REGEXP "^[({\\[]"))
+            SET index (INDEX_OF search (REGEXP "[)}\\]]"))
+            IF (NOT_EQUAL index -1)
+                SET search (MID search (ADD index 1))
+            FI
+        FI
+        SET listA (SPLIT search ' ')
+        FOREACH listA value
+            IF (EQUAL (CONTAIN value (REGEXP "^[({\\[]")) false)
+                BREAK
+            FI
+            LIST_REMOVE_AT listA 0
+        END
+        SET search (JOIN listA ' ')
+        SET search (REPLACE search (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+        SET listA (SPLIT (LOWER (SIMPLIFY search)) ' ')
+        FOREACH listA value
+            IF (EQUAL (NUMBER value) 0)
+                BREAK
+            FI
+            LIST_REMOVE_AT listA 0
+        END
+        FOREACH listA value
+            IF (LESSER (LENGTH value) 4)
+            OR (CONTAIN value (REGEXP "720p|1080p|x264|bluray"))
+                CONTINUE
+            FI
+            LIST_APPEND listB value
+            IF (EQUAL (COUNT listB) 5)
+                BREAK
+            FI
+        END
+        SET search (JOIN listB ' ')
+        #------------------------------------------------------------------------------------------
+        # Apply query
+        #------------------------------------------------------------------------------------------
+        SET language (LIST_GET queryData 0)
+        SET search (SIMPLIFY search)
+        HASH_SET next "url" (APPEND "https://dl.opensubtitles.org/en/search/sublanguageid-" \
+                             language "/subsumcd-1/subformat-srt/moviename-" (URL_ENCODE search))
+        HASH_SET next "id" 1
+        HASH_SET next "queryData" (LIST language search)
+        #------------------------------------------------------------------------------------------
+        # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+        #------------------------------------------------------------------------------------------
+        HASH_SET next "timeout" 10000
+        #------------------------------------------------------------------------------------------
+        RETURN
+    FI
+    SET data (READ data "utf-8")
+    SET data (SLICE_IN data "<tbody>" "</tbody>")
+    SET list (SLICES data "<tr onclick" "</tr>")
+    FOREACH list value
+        # FIXME: Sometimes the 'br' syntax changes overnight.
+        SET title (SLICE_IN value "<br />" "<br />")
+        IF (EQUAL (LENGTH title) 0)
+            SET title (SLICE_IN value "<br/>" "<br/>")
+            IF (EQUAL (LENGTH title) 0)
+                CONTINUE
+            FI
+        FI
+        IF (START_WITH title "<span ")
+            SET title (HTML_ATTRIBUTE title "title")
+        FI
+        SET title (SIMPLIFY (HTML_TO_UTF8 title))
+        HASH_SET item "type" "item"
+        HASH_SET item "state" "default"
+        HASH_SET item "source" (APPEND "https://dl.opensubtitles.org" \
+                                       (HTML_ATTRIBUTE value "href"))
+        HASH_SET item "title" title
+        LIST_APPEND items item
+    END
+    IF (EQUAL id 0)
+        IF (LESSER (COUNT items) 5)
+            SET search (LIST_GET queryData 1)
+            #--------------------------------------------------------------------------------------
+            # Get query
+            #--------------------------------------------------------------------------------------
+            IF (CONTAIN search (REGEXP "^[({\\[]"))
+                SET index (INDEX_OF search (REGEXP "[)}\\]]"))
+                IF (NOT_EQUAL index -1)
+                    SET search (MID search (ADD index 1))
+                FI
+            FI
+            SET listA (SPLIT search ' ')
+            FOREACH listA value
+                IF (EQUAL (CONTAIN value (REGEXP "^[({\\[]")) false)
+                    BREAK
+                FI
+                LIST_REMOVE_AT listA 0
+            END
+            SET search (JOIN listA ' ')
+            SET search (REPLACE search (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+            SET listA (SPLIT (LOWER (SIMPLIFY search)) ' ')
+            FOREACH listA value
+                IF (EQUAL (NUMBER value) 0)
+                    BREAK
+                FI
+                LIST_REMOVE_AT listA 0
+            END
+            FOREACH listA value
+                IF (LESSER (LENGTH value) 4)
+                OR (CONTAIN value (REGEXP "720p|1080p|x264|bluray"))
+                    CONTINUE
+                FI
+                LIST_APPEND listB value
+                IF (EQUAL (COUNT listB) 5)
+                    BREAK
+                FI
+            END
+            SET search (JOIN listB ' ')
+            #--------------------------------------------------------------------------------------
+            # Apply query
+            #--------------------------------------------------------------------------------------
+            SET language (LIST_GET queryData 0)
+            HASH_SET next "url" (APPEND \
+                                 "https://dl.opensubtitles.org/en/search/sublanguageid-" \
+                                 language "/subsumcd-1/subformat-srt/moviename-" \
+                                 (URL_ENCODE search))
+            HASH_SET next "id" 1
+            HASH_SET next "queryData" (LIST language search)
+            #--------------------------------------------------------------------------------------
+            # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+            #--------------------------------------------------------------------------------------
+            HASH_SET next "timeout" 10000
+            #--------------------------------------------------------------------------------------
+        FI
+    ELIF (EQUAL id 3)
+        SET clearDuplicate true
+    ELSE
+        SET clearDuplicate true
+        IF (GREATER (COUNT items) 4)
+            RETURN
+        FI
+        SET search (LIST_GET queryData 1)
+        IF (EQUAL id 1)
+            SET index (INDEX_SKIP search ' ' 2)
+        ELSE
+            SET index (INDEX_SKIP search ' ' 1)
+        FI
+        IF (EQUAL index -1)
+            RETURN
+        FI
+        #------------------------------------------------------------------------------------------
+        # Apply query
+        #------------------------------------------------------------------------------------------
+        SET language (LIST_GET queryData 0)
+        SET search (MID search 0 index)
+        HASH_SET next "url" (APPEND "https://dl.opensubtitles.org/en/search/sublanguageid-" \
+                             language "/subsumcd-1/subformat-srt/moviename-" (URL_ENCODE search))
+        HASH_SET next "id" (ADD id 1)
+        HASH_SET next "queryData" (LIST language search)
+        #------------------------------------------------------------------------------------------
+        # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+        #------------------------------------------------------------------------------------------
+        HASH_SET next "timeout" 10000
+        #------------------------------------------------------------------------------------------
+    FI
+
+EXTRACT_ITEM: |
+    IF (EQUAL id 1)
+        FOREACH (ZIP_FILENAMES data) value
+            SET extension (URL_EXTENSION value)
+            IF (EQUAL (EXTENSION_IS_SUBTITLE extension) false)
+                CONTINUE
+            FI
+            SET itemData (ZIP_EXTRACT_FILE data value)
+            SET cache itemData
+            RETURN
+        END
+    ELSE
+        SET data (READ data "utf-8")
+        SET index (INDEX_OF data "title=\"Download\"")
+        SET source (HTML_ATTRIBUTE data "href" index)
+        HASH_SET next "url" source
+        HASH_SET next "id" 1
+        HASH_SET next "cookies" true
+        #------------------------------------------------------------------------------------------
+        # FIXME OpenSubtitles: Sometimes we don't receive a reply, so we add a timeout.
+        #------------------------------------------------------------------------------------------
+        HASH_SET next "timeout" 10000
+        #------------------------------------------------------------------------------------------
+        # FIXME OpenSubtitles: We have to delay our requests to avoid the captcha.
+        #------------------------------------------------------------------------------------------
+        HASH_SET next "maxHost" 1
+        HASH_SET next "delay" 1000
+        #------------------------------------------------------------------------------------------
+    FI

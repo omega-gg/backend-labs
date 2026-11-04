@@ -1,0 +1,92 @@
+# VBML 1.0.3
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/odysee.vbml
+
+api: 1.0.3
+
+version: 1.0.9
+
+title: Odysee
+
+host: odysee.com
+
+cover: /cover/odysee.png
+
+validate: ^odysee.com
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (START_WITH url "odysee.com/") false)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN ""
+    FI
+    SET url (MID url (INDEX_END url '/'))
+    IF (CONTAIN url ':')
+        RETURN url
+    ELSE
+        RETURN ""
+    FI
+
+URL_TRACK: |
+    RETURN (APPEND "https://odysee.com/" id)
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (START_WITH url "odysee.com/") false)
+    OR (GREATER (COUNT_STRING url '/') 2)
+        RETURN false
+    FI
+    SET backend "odysee"
+    SET id (MID url (INDEX_END url '/'))
+    SET url "https://api.na-backend.odysee.com/api/v1/proxy"
+    SET header '"Content-Type" "application/json"'
+    SET body (APPEND '{ "method": "resolve", ' \
+                     '"params": { "urls": [ "lbry://' (REPLACE id ':' '#') '" ] }}')
+    RETURN true
+
+QUERY_TRACK: |
+    RETURN true
+
+EXTRACT_SOURCE: |
+    IF (EQUAL id 1)
+        SET url (LIST_GET queryData 0)
+        SET list (SLICES data "RESOLUTION=" ".m3u8")
+        FOREACH list source
+            SET quality (SLICE_IN source 'x' ',')
+            SET name (SLICE source 'v' ".m3u8" (INDEX_OF source "NONE"))
+            HASH_SET medias quality (APPEND url '/' name)
+        END
+        HASH_SET medias (LIST_GET queryData 1) (LIST_GET queryData 2)
+        # NOTE VLC 4.0.0: The FFmpeg demuxer seems to behave better when seeking the video.
+        SET options "demux=avformat"
+    ELSE
+        SET data (READ data "utf-8")
+        SET id (JSON_EXTRACT data "claim_id")
+        SET name (JSON_EXTRACT_UTF8 data "normalized_name")
+        SET hash (JSON_EXTRACT data "sd_hash")
+        SET source (APPEND "https://player.odycdn.com/api/v3/streams/free/" name '/' id '/' \
+                           (MID hash 0 6))
+        SET quality (JSON_EXTRACT data "height" (LAST_INDEX_END data "video"))
+        SET url (APPEND "https://player.odycdn.com/v6/streams/" id '/' hash)
+        HASH_SET next "backend" "odysee"
+        HASH_SET next "url" (APPEND url "/master.m3u8")
+        HASH_SET next "id" 1
+        HASH_SET next "queryData" (LIST url quality source)
+        HASH_SET next "skipError" true
+    FI
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    SET index (INDEX_END data "property=\"og:title\"")
+    SET title (HTML_ATTRIBUTE_UTF8 data "content" index)
+    SET index (INDEX_END data "property=\"og:image\"")
+    SET cover (HTML_ATTRIBUTE data "content" index)

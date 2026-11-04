@@ -115,7 +115,7 @@ VISIONOS responses have direct `url` fields with no `signatureCipher` and no `n`
 
 From one run of `sh test/measure-youtube.sh`, on `aqz-KE-bpKQ`, 2026-11-04, compressed size. To be confirmed through the engine.
 
-A track costs 2 watch pages and 1 player request on first play: one watch page for `visitorData`, one for the metadata. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
+A track costs 3 requests on first play: `sw.js_data` for `visitorData` (the watch page until 1.0.130), a watch page for the metadata, and the player request. In `sh test/youtube.sh` that took tracks from about 2.1 to 2.8 s down to 1.2 to 1.9 s, in one run. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
 
 | Step | Today | Candidate |
 | --- | --- | --- |
@@ -124,6 +124,8 @@ A track costs 2 watch pages and 1 player request on first play: one watch page f
 | Track metadata | watch page, 319 KB, plus a 1 s spacing delay | WEB player with `$fields`, 571 bytes, 0.18 s |
 
 - **`visitorData` is required:** VISIONOS returns `LOGIN_REQUIRED` without it.
+- **Fallback:** if `sw.js_data` has no value, the backend falls back to the watch page. Tested by pointing it at another URL: it costs 1 more request, and metadata and sources stay correct.
+- **ANDROID:** it also works without `signatureTimestamp`, in `sh test/measure-youtube.sh`. clientVBML can't reach safe mode, so the backend path itself is not tested.
 - **Not needed for VISIONOS:** `signatureTimestamp` and `html5Preference`, the script sends neither.
 - **In `sw.js_data`:** the value is at `[0][2][0][0][13]`, after stripping the `)]}'` prefix.
 - **Client version:** both 1.02, in `youtube.vbml`, and 1.04, in the script, work with the Safari user agent.
@@ -146,10 +148,9 @@ Open-ended requests are paced at about 2x playback rate, and 10 MB ranges are no
 
 This does not hurt on the test machine: `sh test/youtube.sh play` gives 1.00x with no buffering at 4K60 and 1080p60. Machines without AV1 hardware decoding are not tested.
 
-### Known issues in youtube.vbml 1.0.128
+### Known issues in youtube.vbml 1.0.130
 
 - On a network YouTube flags, `EXTRACT_TRACK` returns wrong metadata instead of nothing, see above.
-- `SET expiry (ADD (DATE) 60) # Two hours` caches sources for 60 seconds.
 - Live in default mode refetches with ANDROID, costing 3 to 4 requests.
 - The comment above the `UNPLAYABLE` fallback mentions `ANDROID_VR`, and the code uses ANDROID.
 

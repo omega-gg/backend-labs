@@ -1,0 +1,206 @@
+# VBML 1.0.4
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/facebook.vbml
+
+api: 1.0.4
+
+version: 1.0.10
+
+title: Facebook
+
+host: facebook.com
+
+cover: /cover/facebook.png
+
+items:
+    playlist:
+        title: Tracks
+
+validate: ^facebook.com
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "facebook.com/") false)
+        RETURN ""
+    FI
+    SET index (INDEX_END url (REGEXP "\\?v=|/embed/|/reel/"))
+    IF (EQUAL index -1)
+        SET index (INDEX_END url "/videos/")
+        IF (EQUAL index -1)
+            RETURN ""
+        FI
+        SET url (URL_REMOVE_EXTENSION url)
+        IF (END_WITH url '/')
+            SET url (CHOP url 1)
+        FI
+        RETURN (URL_ELEMENT url (LAST_INDEX_END url '/'))
+    ELSE
+        RETURN (URL_ELEMENT url index)
+    FI
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (START_WITH url "facebook.com/") false)
+    OR (CONTAIN url "/reel/")
+        RETURN false
+    ELIF (EQUAL (CONTAIN url "/videos") false)
+    AND (NOT_EQUAL (COUNT_STRING url '/') 1)
+        RETURN false
+    FI
+    SET type "feed"
+    SET id (URL_ELEMENT url (INDEX_END url '/'))
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://www.facebook.com/watch/?v=" id)
+
+URL_PLAYLIST: |
+    RETURN (APPEND "https://www.facebook.com/" id "/videos")
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "facebook.com/") false)
+        RETURN false
+    FI
+    SET index (INDEX_END url (REGEXP "\\?v=|/embed/|/reel/"))
+    IF (EQUAL index -1)
+        SET index (INDEX_END url "/videos/")
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET url (URL_REMOVE_EXTENSION url)
+        IF (END_WITH url '/')
+            SET url (CHOP url 1)
+        FI
+        SET url (URL_ELEMENT url (LAST_INDEX_END url '/'))
+    ELSE
+        SET url (URL_ELEMENT url index)
+    FI
+    SET url (APPEND "https://www.facebook.com/video/playback/dash_mpd_debug.mpd?v=" url \
+                    "&dummy=.mpd")
+    # NOTE: This seems required to get proper results.
+    SET header '"Sec-Fetch-Mode" "navigate"'
+    RETURN true
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (EQUAL (START_WITH url "facebook.com/") false)
+        RETURN false
+    FI
+    SET index (INDEX_END url (REGEXP "\\?v=|/embed/|/reel/"))
+    IF (EQUAL index -1)
+        SET index (INDEX_END url "/videos/")
+        IF (EQUAL index -1)
+            RETURN false
+        FI
+        SET url (URL_REMOVE_EXTENSION url)
+        IF (END_WITH url '/')
+            SET url (CHOP url 1)
+        FI
+        SET url (URL_ELEMENT url (LAST_INDEX_END url '/'))
+    ELSE
+        SET url (URL_ELEMENT url index)
+    FI
+    SET url (APPEND "https://www.facebook.com/watch/?v=" url)
+    # NOTE: This seems required to get proper json results.
+    SET header '"accept" "text/html"'
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    IF (EQUAL (START_WITH url "facebook.com/") false)
+    OR (CONTAIN url "/reel/")
+        RETURN false
+    ELIF (EQUAL (CONTAIN url "/videos") false)
+    AND (NOT_EQUAL (COUNT_STRING url '/') 1)
+        RETURN false
+    FI
+    SET url (URL_ELEMENT url (INDEX_END url '/'))
+    SET url (APPEND "https://www.facebook.com/" url "/videos")
+    # NOTE: This seems required to get proper json results.
+    SET header (APPEND '"Sec-Fetch-Mode" "navigate"' \
+                       '"accept" "text/html"')
+    RETURN true
+
+CREATE_QUERY: |
+    IF (NOT_EQUAL method "related")
+        RETURN
+    FI
+    SET url (APPEND "https://www.facebook.com/watch/?v=" q)
+    SET id 1
+    # NOTE: This seems required to get proper json results.
+    SET header '"accept" "text/html"'
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    SET audio (SLICE_IN data "mimeType=\"audio" "</BaseURL>")
+    SET audio (HTML_TO_UTF8 (MID audio (INDEX_END audio <BaseURL>)))
+    SET list (SLICES_IN data "mimeType=\"video" "</BaseURL>")
+    FOREACH list value
+        SET quality (CHOP (HTML_ATTRIBUTE value "FBQualityLabel") 1)
+        SET value (HTML_TO_UTF8 (MID value (INDEX_END value <BaseURL>)))
+        HASH_SET medias quality value
+        HASH_SET audios quality audio
+    END
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    # NOTE: For some reason, when parsing the og:title we get invalid emoticons.
+    SET title (HTML_TO_UTF8 (SLICE_IN data "<title>" "</title>"))
+    SET title (MID title 0 (INDEX_OF title " |"))
+    SET index (INDEX_END data "property=\"og:image\"")
+    SET cover (HTML_ATTRIBUTE_UTF8 data "content" index)
+    SET author (JSON_EXTRACT_UTF8 data "name" (INDEX_END data "\"actors\""))
+    SET feed (JSON_EXTRACT data "page_token")
+    SET duration (JSON_EXTRACT data "playable_duration_in_ms")
+    SET date (JSON_EXTRACT data "publish_time")
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1) # Related
+        SET data (JSON_EXTRACT_HTML data "edges" \
+                                    (INDEX_END data "\"video_home_www_related_videos_section\""))
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            HASH_SET track "source" (JSON_EXTRACT_UTF8 data "canonical_uri_with_fallback")
+            SET index (INDEX_END data "\"video\"")
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 data "text" index)
+            SET index (INDEX_END data "\"image\"")
+            HASH_SET track "cover" (JSON_EXTRACT data "uri" index)
+            SET index (INDEX_END data "\"owner\"")
+            HASH_SET track "author" (JSON_EXTRACT_UTF8 data "name" index)
+            HASH_SET track "feed" (JSON_EXTRACT data "uri_token" index)
+            HASH_SET track "duration" (JSON_EXTRACT data "playable_duration_in_ms")
+            HASH_SET track "date" (JSON_EXTRACT data "publish_time")
+            LIST_APPEND tracks track
+        END
+        RETURN
+    FI
+    # NOTE: For some reason, when parsing the og:title we get invalid emoticons.
+    SET title (HTML_TO_UTF8 (SLICE_IN data "<title>" "</title>"))
+    SET index (INDEX_END data "property=\"og:image\"")
+    SET cover (HTML_ATTRIBUTE_UTF8 data "content" index)
+    SET data (JSON_EXTRACT_HTML data "edges" (INDEX_END data "\"all_videos\""))
+    SET list (JSON_SPLIT data)
+    FOREACH list data
+        HASH_SET track "source" (JSON_EXTRACT_UTF8 data "canonical_uri_with_fallback")
+        SET index (INDEX_END data "\"video\"")
+        HASH_SET track "title" (JSON_EXTRACT_UTF8 data "text" index)
+        SET index (INDEX_END data "\"image\"")
+        HASH_SET track "cover" (JSON_EXTRACT data "uri" index)
+        SET index (INDEX_END data "\"owner\"")
+        HASH_SET track "author" (JSON_EXTRACT_UTF8 data "name" index)
+        HASH_SET track "feed" (JSON_EXTRACT data "uri_token" index)
+        HASH_SET track "duration" (JSON_EXTRACT data "playable_duration_in_ms")
+        HASH_SET track "date" (JSON_EXTRACT data "publish_time")
+        LIST_APPEND tracks track
+    END

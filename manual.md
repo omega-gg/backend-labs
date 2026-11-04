@@ -34,7 +34,7 @@ Use an unfiltered network. A VPN or a company network can block video sites, and
 ## First time
 
 ```sh
-sh setup.sh    # clones vbml and reference
+sh setup.sh    # clones reference, you only need it to read the public extractors
 ```
 
 ## Running the tests
@@ -51,7 +51,7 @@ Both take a level, then the backends to use:
 ```sh
 sh test/all.sh stream           # also checks the video bytes
 sh test/all.sh play             # also plays in Sky-runtime, this opens a window
-sh test/all.sh extract master   # uses the public master branch, not the vbml folder
+sh test/all.sh extract master   # uses the public backend repository, not the vbml folder
 ```
 
 | Level | What it checks |
@@ -106,13 +106,13 @@ The workflow in `.github/workflows/test.yml` is a thin wrapper around this scrip
 
 ```sh
 sh test/ci.sh                   # builds clientVBML if needed, then runs the tests
-sh test/ci.sh stream my-branch  # with a level, and a branch of the public backend repository
+sh test/ci.sh stream            # with a level
 sh test/ci.sh measure           # how YouTube treats this network, with measure-youtube.sh
 ```
 
 It runs on every push and pull request, and once a day because sites change on their own. You can also start it from the Actions tab.
 
-- On GitHub it tests what is public, so the `labs` branch has to be pushed to the backend repository first. Installed players only follow `master`, so that branch stays out of their way. Locally it uses your `vbml` folder.
+- It tests the `vbml` folder of this repository, so a fix gets tested as soon as it's pushed here, long before it reaches a player.
 - It takes a while the first time, then clientVBML is only built again when clientVBML or Sky changes.
 - There is no `play` level, because it needs a Sky-runtime build and a screen.
 - On GitHub, the results are in the `results` artifact of each run.
@@ -130,7 +130,8 @@ sh test/lint.sh                  # checks the versions in both indexes, without 
 sh test/failure.sh               # a failed request has to exit cleanly, without any network
 sh test/measure-youtube.sh       # what each YouTube request costs, and how streams are throttled
 sh test/backtrace.sh "<url>"     # where clientVBML crashes on a query, in gdb
-sh pull.sh                       # updates vbml and reference, and reports YouTube client changes
+sh pull.sh                       # updates reference, and reports YouTube client changes
+sh resync.sh                     # lists our changes still to apply to the public backend, see resync.md
 ```
 
 ## Adding a test

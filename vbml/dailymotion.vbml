@@ -1,0 +1,274 @@
+# VBML 1.0.1
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/dailymotion.vbml
+
+api: 1.0.1
+
+version: 1.0.6
+
+title: Dailymotion
+
+host: dailymotion.com
+
+cover: /cover/dailymotion.png
+
+items:
+    playlist:
+        title: Tracks
+    folder:
+        title: Channels
+    folder:
+        title: Playlists
+
+validate: ^dailymotion.com|^games.dailymotion.com
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "games.")
+        SET url (REMOVE url 0 6)
+    FI
+    IF (EQUAL (START_WITH url "dailymotion.com") false)
+        RETURN
+    FI
+    SET index (INDEX_END url (REGEXP "/video/|#videoId=|#video="))
+    IF (NOT_EQUAL index -1)
+        RETURN (URL_ELEMENT url index)
+    FI
+
+PLAYLIST_INFO: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "games.")
+        SET url (REMOVE url 0 6)
+    FI
+    IF (EQUAL (START_WITH url "dailymotion.com") false)
+        RETURN false
+    FI
+    IF (START_WITH url "dailymotion.com/playlist/")
+        SET type "playlist"
+        SET id (URL_ELEMENT url 25)
+        RETURN true
+    FI
+    IF (START_WITH url "dailymotion.com/user/")
+        SET type "feed"
+        SET id (URL_ELEMENT url 21)
+        RETURN true
+    FI
+    SET id (URL_ELEMENT url 16)
+    IF (EQUAL id "")
+    OR (LESSER (LENGTH id) 3)
+    OR (NOT_EQUAL (INDEX_OF url (REGEXP "[/\\?#.]") 16) -1)
+        RETURN false
+    FI
+    SET type "feed"
+    RETURN true
+
+URL_TRACK: |
+    RETURN (APPEND "https://www.dailymotion.com/video/" id)
+
+URL_PLAYLIST: |
+    IF (EQUAL type "feed")
+        RETURN (APPEND "https://www.dailymotion.com/user/" id)
+    ELSE
+        RETURN (APPEND "https://www.dailymotion.com/playlist/" id)
+    FI
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "games.")
+        SET url (REMOVE url 0 6)
+    FI
+    IF (EQUAL (START_WITH url "dailymotion.com") false)
+        RETURN false
+    FI
+    SET index (INDEX_END url (REGEXP "/video/|#videoId=|#video="))
+    IF (EQUAL index -1)
+        RETURN false
+    FI
+    SET url (APPEND "https://www.dailymotion.com/player/metadata/video/" (URL_ELEMENT url index))
+    RETURN true
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "games.")
+        SET url (REMOVE url 0 6)
+    FI
+    IF (EQUAL (START_WITH url "dailymotion.com") false)
+        RETURN false
+    FI
+    SET index (INDEX_END url (REGEXP "/video/|#videoId=|#video="))
+    IF (EQUAL index -1)
+        RETURN false
+    FI
+    SET backend "dailymotion"
+    SET url (APPEND "https://api.dailymotion.com/video/" (URL_ELEMENT url index))
+    URL_ADD_QUERY url "fields" "url,title,thumbnail_url,duration,owner.username,owner.screenname,created_time,available_formats"
+    RETURN true
+
+QUERY_PLAYLIST: |
+    SET url (URL_REMOVE_PREFIX url)
+    IF (START_WITH url "games.")
+        SET url (REMOVE url 0 6)
+    FI
+    IF (EQUAL (START_WITH url "dailymotion.com") false)
+        RETURN false
+    FI
+    IF (START_WITH url "dailymotion.com/playlist/")
+        SET id (URL_ELEMENT url 25)
+    ELIF (START_WITH url "dailymotion.com/user/")
+        SET id (URL_ELEMENT url 21)
+    ELSE
+        SET id (URL_ELEMENT url 16)
+        IF (EQUAL id "")
+        OR (LESSER (LENGTH id) 3)
+        OR (NOT_EQUAL (INDEX_OF url (REGEXP "[/\\?#.]") 16) -1)
+            SET id ""
+            RETURN false
+        FI
+    FI
+    SET backend "dailymotion"
+    IF (START_WITH url "dailymotion.com/playlist/")
+        SET url (APPEND "https://api.dailymotion.com/playlist/" id)
+        # FIXME: thumbnail_url field seems to be broken.
+        URL_ADD_QUERY url "fields" "name"
+        SET queryData (APPEND "playlist/" id)
+        SET id 1
+    ELSE
+        SET url (APPEND "https://api.dailymotion.com/user/" id)
+        URL_ADD_QUERY url "fields" "screenname,avatar_720_url"
+        SET queryData (APPEND "user/" id)
+        SET id 2
+    FI
+    RETURN true
+
+CREATE_QUERY: |
+    IF (EQUAL method "search")
+        IF (EQUAL label "tracks")
+            SET backend "dailymotion"
+            SET url "https://api.dailymotion.com/videos"
+            URL_ADD_QUERY url "search" (URL_ENCODE q)
+            URL_ADD_QUERY url "fields" "url,title,thumbnail_url,duration,owner.username,owner.screenname,created_time,available_formats"
+            URL_ADD_QUERY url "sort" "relevance"
+            URL_ADD_QUERY url "limit" 50
+        ELIF (EQUAL label "channels")
+            SET backend "dailymotion"
+            SET url "https://api.dailymotion.com/users"
+            URL_ADD_QUERY url "search" (URL_ENCODE q)
+            URL_ADD_QUERY url "fields" "username,screenname,avatar_720_url"
+            URL_ADD_QUERY url "sort" "relevance"
+            URL_ADD_QUERY url "limit" 20
+            SET id 1
+        ELIF (EQUAL label "playlists")
+            SET backend "dailymotion"
+            SET url "https://api.dailymotion.com/playlists"
+            URL_ADD_QUERY url "search" (URL_ENCODE q)
+            URL_ADD_QUERY url "fields" "id,name,thumbnail_url"
+            URL_ADD_QUERY url "sort" "relevance"
+            URL_ADD_QUERY url "limit" 20
+        FI
+    ELIF (EQUAL method "related")
+    AND (EQUAL label "tracks")
+        SET backend "dailymotion"
+        SET url (APPEND "https://api.dailymotion.com/video/" q "/related")
+        URL_ADD_QUERY url "fields" "url,title,thumbnail_url,duration,owner.username,owner.screenname,created_time,available_formats"
+        URL_ADD_QUERY url "limit" 50
+    FI
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1)
+        SET list "240" "380" "480" "720" "1080" "1440" "2160"
+        FOREACH list value
+            SET index (LAST_INDEX_OF data (APPEND "NAME=\"" value))
+            IF (EQUAL index -1)
+                CONTINUE
+            FI
+            SET source (SLICE data "https://" ".m3u8" index)
+            HASH_SET medias value source
+        END
+    ELSE
+        SET data (JSON_EXTRACT_HTML data "qualities")
+        HASH_SET next "url" (JSON_EXTRACT data "url")
+        HASH_SET next "id" 1
+    FI
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    SET data (JSON_EXTRACT_HTML data)
+    SET title (JSON_EXTRACT_UTF8 data "title")
+    SET cover (JSON_EXTRACT data "thumbnail_url")
+    SET author (JSON_EXTRACT_UTF8 data "owner.screenname")
+    SET feed (JSON_EXTRACT data "owner.username")
+    SET duration (MULTIPLY (JSON_EXTRACT data "duration") 1000)
+    SET date (JSON_EXTRACT data "created_time")
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id 1) # playlist
+        SET data (JSON_EXTRACT_HTML data)
+        SET title (JSON_EXTRACT_UTF8 data "name")
+        SET cover (JSON_EXTRACT data "thumbnail_url")
+        SET url (APPEND "https://api.dailymotion.com/" queryData "/videos")
+        URL_ADD_QUERY url "fields" "url,title,thumbnail_url,duration,owner.username,owner.screenname,created_time,available_formats"
+        URL_ADD_QUERY url "limit" 50
+        HASH_SET next "backend" "dailymotion"
+        HASH_SET next "url" url
+    ELIF (EQUAL id 2) # channels
+        SET data (JSON_EXTRACT_HTML data)
+        SET title (JSON_EXTRACT_UTF8 data "screenname")
+        SET cover (JSON_EXTRACT data "avatar_720_url")
+        SET url (APPEND "https://api.dailymotion.com/" queryData "/videos")
+        URL_ADD_QUERY url "fields" "url,title,thumbnail_url,duration,owner.username,owner.screenname,created_time,available_formats"
+        URL_ADD_QUERY url "limit" 50
+        HASH_SET next "backend" "dailymotion"
+        HASH_SET next "url" url
+    ELSE
+        SET data (JSON_EXTRACT_HTML data "list")
+        SET list (JSON_SPLIT data)
+        FOREACH list data
+            HASH_SET track "source" (JSON_EXTRACT data "url")
+            HASH_SET track "title" (JSON_EXTRACT_UTF8 data "title")
+            HASH_SET track "cover" (JSON_EXTRACT data "thumbnail_url")
+            HASH_SET track "author" (JSON_EXTRACT_UTF8 data "owner.screenname")
+            HASH_SET track "feed" (JSON_EXTRACT data "owner.username")
+            HASH_SET track "duration" (MULTIPLY (JSON_EXTRACT data "duration") 1000)
+            HASH_SET track "date" (JSON_EXTRACT data "created_time")
+            LIST_APPEND tracks track
+        END
+    FI
+
+EXTRACT_FOLDER: |
+    SET data (READ data "utf-8")
+    SET data (JSON_EXTRACT_HTML data "list")
+    SET list (JSON_SPLIT data)
+    IF (EQUAL id 1) # channels
+        FOREACH list data
+            SET source (APPEND "https://www.dailymotion.com/user/" \
+                               (JSON_EXTRACT data "username"))
+            HASH_SET item "type" "feed"
+            HASH_SET item "state" "default"
+            HASH_SET item "source" source
+            HASH_SET item "title" (JSON_EXTRACT_UTF8 data "screenname")
+            HASH_SET item "cover" (JSON_EXTRACT data "avatar_720_url")
+            LIST_APPEND items item
+        END
+    ELSE # playlists
+        FOREACH list data
+            SET source (APPEND "https://www.dailymotion.com/playlist/" \
+                               (JSON_EXTRACT data "id"))
+            HASH_SET item "type" "playlist"
+            HASH_SET item "state" "default"
+            HASH_SET item "source" source
+            HASH_SET item "title" (JSON_EXTRACT_UTF8 data "name")
+            HASH_SET item "cover" (JSON_EXTRACT data "thumbnail_url")
+            LIST_APPEND items item
+        END
+    FI

@@ -10,20 +10,22 @@ Pushing to that repo is the sensitive step. Installed deploy builds fetch backen
 
 ## Repository layout
 
-`vbml/` and `reference/*` keep their `.git` and stay real clones. backend-labs ignores them.
+`vbml/` holds our backends as plain files committed here, synced with `omega-gg/backend` only on request. `reference/*` keep their `.git` and stay real clones that backend-labs ignores.
 
 ```
 backend-labs/
   .gitignore         ignores vbml/ and reference/
-  setup.sh           clones all four repos at the hashes in reference.lock
-  pull.sh            pulls all four, rewrites reference.lock, reports watched changes
+  setup.sh           clones the reference repos at the hashes in reference.lock
+  pull.sh            pulls them, rewrites reference.lock, reports watched changes
+  resync.sh          lists what is pending for omega-gg/backend, resync.md explains the steps
+  resync.lock        our commit and the public commit of the last resync
   reference.lock     commit hash of each clone
   manual.md          how to run the tests
   implementation.md  technical findings
   doc/plan/          copies of our plans
   test/              CLI test suite: one script per backend, all.sh, common.sh, baselines
   .github/           CI workflow that runs the test suite
-  vbml/              clone of omega-gg/backend, work happens on a local `labs` branch
+  vbml/              our backends, committed here
   reference/         yt-dlp, NewPipeExtractor, YoutubeExplode
 ```
 
@@ -73,7 +75,7 @@ Still to do:
 
 - Before export, run a final check in each consumer: MotionBox, MotionMonkey, tevolution, tevo (`--screen`, otherwise audio only) and Sky-runtime. The user keeps dev apps closed during those runs.
 - Show the final diff and numbers, and push on explicit approval only.
-- Merge `labs` into `master` in `vbml/`, push, then pull in the public `backend` checkout. A running MotionBox reloads when that folder changes.
+- Follow `resync.md` when requested.
 
 ### M4. Other backends, one export each
 

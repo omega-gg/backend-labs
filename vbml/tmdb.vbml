@@ -1,0 +1,569 @@
+# VBML 1.0.1
+#--------------------------------------------------------------------------------------------------
+# Properties
+#--------------------------------------------------------------------------------------------------
+
+type: backend
+
+source: https://raw.githubusercontent.com/omega-gg/backend/master/tmdb.vbml
+
+api: 1.0.1
+
+version: 1.0.36
+
+search: coverVideo
+
+title: TMDB
+
+host: themoviedb.org
+
+cover: /cover/tmdb.png
+
+hub: https://vox.omega.gg/w/9d5fYXTcjLHReVUQabKRwB
+
+items:
+    playlist:
+        title: Trailers
+        label: tracks
+
+validate: ^themoviedb.org
+
+#--------------------------------------------------------------------------------------------------
+# Routines
+#--------------------------------------------------------------------------------------------------
+
+TRACK_ID: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET url (URL_ELEMENTS url 2 15)
+    IF (START_WITH url "movie/")
+    OR (START_WITH url "tv/")
+        IF (EQUAL (INDEX_OF url (REGEXP "[0-9]")) -1)
+            RETURN ""
+        ELSE
+            RETURN url
+        FI
+    ELSE
+        RETURN ""
+    FI
+
+URL_TRACK: |
+    RETURN (APPEND "https://www.themoviedb.org/" id)
+
+QUERY_SOURCE: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET url (URL_ELEMENTS url 2 15)
+    IF (START_WITH url "movie/")
+    OR (START_WITH url "tv/")
+        IF (EQUAL (INDEX_OF url (REGEXP "[0-9]")) -1)
+            RETURN false
+        FI
+        SET url (APPEND "https://www.themoviedb.org/" url)
+        RETURN true
+    ELSE
+        RETURN false
+    FI
+
+QUERY_TRACK: |
+    SET url (URL_REMOVE_PREFIX (URL_REMOVE_EXTENSION url))
+    SET url (URL_ELEMENTS url 2 15)
+    IF (START_WITH url "movie/")
+    OR (START_WITH url "tv/")
+        IF (EQUAL (INDEX_OF url (REGEXP "[0-9]")) -1)
+            RETURN false
+        FI
+        SET url (APPEND "https://www.themoviedb.org/" url)
+        SET id -1
+        RETURN true
+    ELSE
+        RETURN false
+    FI
+
+CREATE_QUERY: |
+    IF (EQUAL label "tracks")
+        IF (EQUAL method "search")
+            SET url (APPEND "https://api.themoviedb.org/3/search/multi?query=" (URL_ENCODE q) \
+                            "&api_key=8341de77e3a24593226752d83720f88b")
+        ELIF (EQUAL method "related")
+            SET url (APPEND "https://api.themoviedb.org/3/" q \
+                            "/recommendations?api_key=8341de77e3a24593226752d83720f88b")
+        FI
+        RETURN
+    ELIF (EQUAL method "view")
+        IF (START_WITH q "discover")
+            SET url (APPEND "https://api.themoviedb.org/3/" q \
+                            "&api_key=8341de77e3a24593226752d83720f88b")
+            SET type (SLICE_IN q '/' '?')
+            IF (CONTAIN type "tv")
+                SET label "TV Shows"
+            ELSE
+                SET label "Movies"
+            FI
+            IF (CONTAIN q "with_watch_providers=8") # Netflix
+                SET queryData \
+                    (LIST (APPEND "Netflix: " label) type \
+                          "https://omega.gg/vox/repository/hub/tmdb/hub/netflix/netflix.png" \
+                          "https://vox.omega.gg/w/azQbNtC41sMW7RYge9qBrV")
+                RETURN
+            ELIF (CONTAIN q "with_watch_providers=337") # Disney+
+                SET queryData \
+                    (LIST (APPEND "Disney+: " label) type \
+                          "https://omega.gg/vox/repository/hub/tmdb/hub/disney/disney.png" \
+                          "https://vox.omega.gg/w/u7LcNmoaU3AU82PBjFHG72")
+                RETURN
+            ELIF (CONTAIN q "with_watch_providers=350") # Apple TV+
+                SET queryData \
+                    (LIST (APPEND "Apple TV+: " label) type \
+                          "https://omega.gg/vox/repository/hub/tmdb/hub/apple/apple.png" \
+                          "https://vox.omega.gg/w/pAtEEiZ13ezKCcgEHnnXY1")
+                RETURN
+            ELIF (CONTAIN q "with_watch_providers=1899") # HBO Max
+                SET queryData \
+                    (LIST (APPEND "HBO Max: " label) type \
+                          "https://omega.gg/vox/repository/hub/tmdb/hub/max/max.png" \
+                          "https://vox.omega.gg/w/aHy9qfys6ZHzWHVANxX7fp")
+                RETURN
+            FI
+        ELSE
+            SET url (APPEND "https://api.themoviedb.org/3/" q \
+                            "?api_key=8341de77e3a24593226752d83720f88b")
+            SET type (MID q 0 (INDEX_OF q '/'))
+            IF (CONTAIN type "tv")
+                SET label "TV Shows"
+            ELSE
+                SET label "Movies"
+            FI
+        FI
+        SET queryData \
+            (LIST (APPEND "The Movie Database: " label) type \
+            "https://raw.githubusercontent.com/omega-gg/backend/master/cover/tmdb.png" \
+            "https://vox.omega.gg/w/9d5fYXTcjLHReVUQabKRwB")
+        RETURN
+    FI
+    #----------------------------------------------------------------------------------------------
+    # Get list
+    #----------------------------------------------------------------------------------------------
+    IF (NOT_EQUAL method "cover")
+        RETURN
+    FI
+    IF (CONTAIN q (REGEXP "^[({\\[]"))
+        SET index (INDEX_END q (REGEXP "[)}\\]]"))
+        IF (NOT_EQUAL index -1)
+            SET q (MID q index)
+        FI
+    FI
+    SET list (SPLIT q ' ')
+    FOREACH list value
+        IF (EQUAL (CONTAIN value (REGEXP "^[({\\[]")) false)
+            BREAK
+        FI
+        LIST_REMOVE_AT list 0
+    END
+    SET q (JOIN list ' ')
+    SET q (REPLACE q (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+    SET list (SPLIT (LOWER (SIMPLIFY q)) ' ')
+    FOREACH list value
+        IF (EQUAL (NUMBER value) 0)
+            BREAK
+        FI
+        LIST_REMOVE_AT list 0
+    END
+    #----------------------------------------------------------------------------------------------
+    FOREACH list value
+        #------------------------------------------------------------------------------------------
+        # Get type
+        #------------------------------------------------------------------------------------------
+        SET length (LENGTH value)
+        IF (EQUAL length 4)
+            IF (GREATER_EQUAL value 1800)
+                SET type 1 # Movie
+            FI
+        ELIF (START_WITH value 's')
+            SET index (INDEX_OF value (REGEXP "[^0-9]") 1)
+            IF (NOT_EQUAL index -1)
+            AND (EQUAL (GET_CHAR value index) 'e')
+                SET index (INDEX_END value (REGEXP "[^0-9]") (ADD index 1))
+                IF (EQUAL index -1)
+                    SET type 2 # Show
+                FI
+            FI
+        FI
+        #------------------------------------------------------------------------------------------
+        IF (EQUAL type 1) # Movie
+            SET index (ADD i 1)
+            IF (EQUAL index (COUNT list))
+                IF (EQUAL (LENGTH title) 0)
+                    RETURN
+                FI
+                SET title (CHOP title 1)
+            ELSE
+                SET data (LIST_GET list index)
+                IF (EQUAL (LENGTH data) 4)
+                AND (GREATER_EQUAL data 1800)
+                    SET title (APPEND title value)
+                    SET value data
+                ELSE
+                    IF (EQUAL (LENGTH title) 0)
+                        RETURN
+                    FI
+                    SET title (CHOP title 1)
+                FI
+            FI
+            SET url "https://www.themoviedb.org/search"
+            URL_ADD_QUERY url "query" (APPEND (URL_ENCODE title) " y:" value)
+            URL_ADD_QUERY url "language" "en"
+            SET id 1
+            SET header true
+            RETURN
+        ELIF (EQUAL type 2) # Show
+            SET index (INDEX_OF value 'e')
+            SET season (NUMBER (MID value 1 (SUB index 1)))
+            IF (LESSER season 1)
+                RETURN
+            FI
+            SET episode (NUMBER (MID value (ADD index 1)))
+            IF (LESSER episode 1)
+                RETURN
+            FI
+            #======================================================================================
+            # Extract show
+            #======================================================================================
+            # Get list
+            #--------------------------------------------------------------------------------------
+            IF (CONTAIN label (REGEXP "^[({\\[]"))
+                SET index (INDEX_END label (REGEXP "[)}\\]]"))
+                IF (NOT_EQUAL index -1)
+                    SET label (MID label index)
+                FI
+            FI
+            SET list (SPLIT label ' ')
+            FOREACH temp string
+                IF (EQUAL (CONTAIN string (REGEXP "^[({\\[]")) false)
+                    BREAK
+                FI
+                LIST_REMOVE_AT list 0
+            END
+            SET label (JOIN list ' ')
+            SET label (REPLACE label (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+            SET list (SPLIT (LOWER (SIMPLIFY label)) ' ')
+            FOREACH temp string
+                IF (EQUAL (NUMBER value) 0)
+                    BREAK
+                FI
+                LIST_REMOVE_AT list 0
+            END
+            #--------------------------------------------------------------------------------------
+            FOREACH list string
+                IF (START_WITH string 's')
+                    #SET length (LENGTH string)
+                    SET index (INDEX_OF string (REGEXP "[^0-9]") 1)
+                    IF (EQUAL index -1)
+                    AND (NOT_EQUAL (LENGTH show) 0)
+                        BREAK
+                    FI
+                    IF (EQUAL (GET_CHAR string index) 'e')
+                        SET index (INDEX_END string (REGEXP "[^0-9]") (ADD index 1))
+                        IF (EQUAL index -1)
+                        AND (NOT_EQUAL (LENGTH show) 0)
+                            BREAK
+                        FI
+                    FI
+                    SET index (ADD j 1)
+                    IF (NOT_EQUAL index (COUNT list))
+                    AND (NUMBER (LIST_GET list index))
+                    AND (NOT_EQUAL (LENGTH show) 0)
+                        BREAK
+                    FI
+                FI
+                SET show (APPEND show (APPEND string ' '))
+                SET j (ADD j 1)
+            END
+            SET show (CHOP show 1)
+            #======================================================================================
+            SET source (HASH_GET (LIST_GET global 1) show)
+            IF (LENGTH source)
+                SET list show
+                SET url (APPEND source (NUMBER season) "/episode/" (NUMBER episode) \
+                         "/images/backdrops?language=en")
+                SET id 4
+            ELSE
+                SET list show season episode
+                SET url "https://www.themoviedb.org/search/tv"
+                URL_ADD_QUERY url "query" (URL_ENCODE show)
+                URL_ADD_QUERY url "language" "en"
+                SET id 3
+                SET header true
+            FI
+            SET queryData list
+        ELIF (END_WITH value 'p')
+            SET temp value
+            SET temp (CHOP temp 1)
+            IF (NUMBER temp)
+                BREAK
+            FI
+        FI
+        SET title (APPEND title value ' ')
+        SET i (ADD i 1)
+    END
+    IF (EQUAL (LENGTH title) 0)
+        RETURN
+    FI
+    SET title (CHOP title 1)
+    SET index (LAST_INDEX_OF title ' ')
+    IF (NOT_EQUAL index -1)
+        SET string (MID title (ADD index 1))
+        IF (EXTENSION_IS_VIDEO string)
+            SET title (REMOVE title index (SUB (LENGTH title) index))
+        FI
+    FI
+    SET url "https://www.themoviedb.org/search"
+    URL_ADD_QUERY url "query" (URL_ENCODE title)
+    URL_ADD_QUERY url "language" "en"
+    SET queryData title
+    SET header true
+
+EXTRACT_SOURCE: |
+    SET data (READ data "utf-8")
+    SET id (HTML_ATTRIBUTE data "data-id" (INDEX_OF data "data-site=\"YouTube\""))
+    IF (EQUAL id "")
+        RETURN
+    FI
+    HASH_SET next "backend" "youtube"
+    HASH_SET next "url" (APPEND "https://www.youtube.com/watch?v=" id)
+
+EXTRACT_TRACK: |
+    SET data (READ data "utf-8")
+    IF (EQUAL id -1)
+        SET title (HTML_ATTRIBUTE_UTF8 data "content" (INDEX_OF data "\"og:title\""))
+        SET title (APPEND title ' ' (SLICE_IN data "class=\"tag release_date\">" '<'))
+        SET cover (HTML_ATTRIBUTE_UTF8 data "content" (LAST_INDEX_OF data "\"og:image\""))
+        SET cover (APPEND "https://image.tmdb.org/t/p/w1920_and_h1080_bestv2/" \
+                          (MID cover (LAST_INDEX_END cover '/')))
+    ELIF (EQUAL id 2)
+    OR   (EQUAL id 4)
+        SET index (INDEX_OF data "<a class=\"block")
+        IF (EQUAL index -1)
+            RETURN
+        FI
+        SET cover (HTML_ATTRIBUTE data "href" index)
+        HASH_SET track "cover" cover
+        #------------------------------------------------------------------------------------------
+        # Global
+        #------------------------------------------------------------------------------------------
+        IF (NOT_EQUAL cover "")
+            RETURN
+        FI
+        SET show (LIST_GET queryData 0)
+        SET list (LIST_GET global 0)
+        SET hash (LIST_GET global 1)
+        LIST_REMOVE list show
+        HASH_REMOVE hash show
+        SET global (LIST list hash)
+        #------------------------------------------------------------------------------------------
+    ELIF (EQUAL id 3) # Show
+        # NOTE: Skip the movie results.
+        SET index (INDEX_OF data "<div class=\"search_results tv")
+        SET list (SLICES data "<div class=\"flex " "</a>" index)
+        IF (EQUAL (COUNT list) 0)
+            RETURN
+        FI
+        SET data (LIST_GET list 0)
+        #------------------------------------------------------------------------------------------
+        # listA
+        SET string (LIST_GET queryData 0)
+        SET string (REPLACE string (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+        SET listA (SPLIT (LOWER (SIMPLIFY string)) ' ')
+        #------------------------------------------------------------------------------------------
+        # listB
+        SET string (HTML_ATTRIBUTE_UTF8 data "alt")
+        SET string (REPLACE string (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+        SET listB (SPLIT (LOWER (SIMPLIFY string)) ' ')
+        #------------------------------------------------------------------------------------------
+        IF (NOT_EQUAL (COUNT list) 1)
+            #--------------------------------------------------------------------------------------
+            # Match
+            #--------------------------------------------------------------------------------------
+            IF (EQUAL (COUNT listB) 1)
+            AND (GREATER (COUNT listA) 1)
+                RETURN
+            FI
+            #SET from 0
+            FOREACH listA valueA
+                SET from (LIST_INDEX listB valueA from)
+                IF (EQUAL from -1)
+                    SET from 0
+                    FOREACH listB valueB
+                        SET from (LIST_INDEX listA valueB from)
+                        IF (EQUAL from -1)
+                            RETURN
+                        FI
+                    END
+                    BREAK
+                FI
+            END
+            #--------------------------------------------------------------------------------------
+        FI
+        SET source (URL_REMOVE_EXTENSION (HTML_ATTRIBUTE data "href"))
+        SET source (APPEND "https://www.themoviedb.org" source "/season/" \
+                           (LIST_TAKE_AT queryData 1) "/episode/" (LIST_TAKE_AT queryData 1) \
+                           "/images/backdrops?language=en")
+        HASH_SET next "url" source
+        HASH_SET next "id" 4
+        HASH_SET next "queryData" queryData
+        HASH_SET next "header" true
+        #------------------------------------------------------------------------------------------
+        # Global
+        #------------------------------------------------------------------------------------------
+        SET source (MID source 0 (INDEX_END "/season/"))
+        SET list (LIST_GET global 0)
+        SET hash (LIST_GET global 1)
+        IF (GREATER (COUNT list 100))
+            SET show (LIST_TAKE_AT list 0)
+            HASH_REMOVE hash show
+        FI
+        SET show (LIST_GET queryData 0)
+        LIST_REMOVE list show
+        LIST_APPEND list show
+        SET hash show source
+        SET global (LIST list hash)
+        #------------------------------------------------------------------------------------------
+    ELIF (EQUAL id 1) # Movie
+        SET data (SLICE_IN data "<div class=\"flex " "</a>")
+        IF (EQUAL (LENGTH data) 0)
+            RETURN
+        FI
+        #------------------------------------------------------------------------------------------
+        # Apply source
+        #------------------------------------------------------------------------------------------
+        SET source (URL_REMOVE_EXTENSION (HTML_ATTRIBUTE data "href"))
+        HASH_SET next "url" (APPEND "https://www.themoviedb.org" source \
+                                    "/images/backdrops?language=en")
+        HASH_SET next "id" 2
+        HASH_SET next "header" true
+        #------------------------------------------------------------------------------------------
+    ELSE # Movie
+        SET listA (SLICES data "<div class=\"flex " "</a>")
+        IF (EQUAL (COUNT listA) 1)
+            #--------------------------------------------------------------------------------------
+            # Apply source
+            #--------------------------------------------------------------------------------------
+            SET source (URL_REMOVE_EXTENSION (HTML_ATTRIBUTE (LIST_GET listA 0) "href"))
+            HASH_SET next "url" (APPEND "https://www.themoviedb.org" source \
+                                        "/images/backdrops?language=en")
+            HASH_SET next "id" 2
+            HASH_SET next "header" true
+            #--------------------------------------------------------------------------------------
+            RETURN
+        FI
+        SET queryData (REPLACE queryData (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+        SET listB (SPLIT (LOWER (SIMPLIFY queryData)) ' ')
+        FOREACH listA data
+            SET value (LOWER (HTML_ATTRIBUTE_UTF8 data "alt"))
+            SET value (REPLACE value (REGEXP "[,.:\\-_(){}\\[\\]]") ' ')
+            SET listA (SIMPLIFY (SPLIT (LOWER value)) ' ')
+            #--------------------------------------------------------------------------------------
+            # Match
+            #--------------------------------------------------------------------------------------
+            SET from -1
+            IF (NOT_EQUAL (COUNT listB) 1)
+            OR (EQUAL (COUNT listA) 1)
+                SET from 0
+                FOREACH listA valueA
+                    SET from (LIST_INDEX listB valueA from)
+                    IF (EQUAL from -1)
+                        SET from 0
+                        FOREACH listB valueB
+                            SET from (LIST_INDEX listA valueB from)
+                            IF (EQUAL from -1)
+                                BREAK
+                            FI
+                        END
+                        BREAK
+                    FI
+                END
+            FI
+            IF (NOT_EQUAL from -1)
+                #----------------------------------------------------------------------------------
+                # Apply source
+                #----------------------------------------------------------------------------------
+                SET source (URL_REMOVE_EXTENSION (HTML_ATTRIBUTE data "href"))
+                HASH_SET next "url" (APPEND "https://www.themoviedb.org" source \
+                                            "/images/backdrops?language=en")
+                HASH_SET next "id" 2
+                HASH_SET next "header" true
+                #----------------------------------------------------------------------------------
+                RETURN
+            FI
+        END
+    FI
+
+EXTRACT_PLAYLIST: |
+    SET data (READ data "utf-8")
+    # NOTE: When it's a view query we set the title and cover and prepend the hub.
+    IF (EQUAL id 0)
+    AND (NOT_EQUAL (COUNT queryData) 0)
+        SET title (LIST_GET queryData 0)
+        SET cover (LIST_GET queryData 2)
+        HASH_SET hub "state" "default"
+        HASH_SET hub "source" (LIST_GET queryData 3)
+        LIST_APPEND tracks hub
+    FI
+    SET data (JSON_EXTRACT data "results")
+    SET list (JSON_SPLIT data)
+    FOREACH list data
+        IF (COUNT queryData)
+            SET source (APPEND "https://www.themoviedb.org/" (LIST_GET queryData 1) '/' \
+                               (JSON_EXTRACT data "id"))
+        ELSE
+            SET source (APPEND "https://www.themoviedb.org/" (JSON_EXTRACT data "media_type") '/' \
+                                                             (JSON_EXTRACT data "id"))
+        FI
+        #------------------------------------------------------------------------------------------
+        # Title
+        #------------------------------------------------------------------------------------------
+        SET name (JSON_EXTRACT_UTF8 data "title")
+        IF (EQUAL name "")
+            SET name (JSON_EXTRACT_UTF8 data "name")
+        FI
+        SET date (JSON_EXTRACT data "release_date")
+        IF (EQUAL date "")
+            SET date (JSON_EXTRACT data "first_air_date")
+        FI
+        IF (NOT_EQUAL date "")
+            SET date (MID date 0 (INDEX_OF date '-'))
+            SET name (APPEND name " (" date ')')
+        FI
+        #------------------------------------------------------------------------------------------
+        # Cover
+        #------------------------------------------------------------------------------------------
+        SET backdrop (JSON_EXTRACT data "backdrop_path")
+        IF (EQUAL backdrop "null")
+            SET backdrop (JSON_EXTRACT data "poster_path")
+        FI
+        IF (EQUAL backdrop "null")
+            SET backdrop ""
+        ELSE
+            SET backdrop (APPEND "https://image.tmdb.org/t/p/w1920_and_h1080_bestv2" backdrop)
+        FI
+        #------------------------------------------------------------------------------------------
+        HASH_SET track "source" source
+        HASH_SET track "title" name
+        HASH_SET track "cover" backdrop
+        LIST_APPEND tracks track
+    END
+    # FIXME: Sometimes we have duplicates.
+    SET clearDuplicate true
+    IF (EQUAL (COUNT queryData) 0)
+        IF (EQUAL (COUNT tracks) 0)
+        OR (EQUAL id 1)
+            HASH_SET hub "state" "default"
+            HASH_SET hub "source" "https://vox.omega.gg/w/9d5fYXTcjLHReVUQabKRwB"
+            LIST_APPEND tracks hub
+            RETURN
+        FI
+    # NOTE: We load four pages on a view query.
+    ELIF (EQUAL id 4)
+        RETURN
+    FI
+    HASH_SET next "url" (APPEND url "&page=" (ADD id 2))
+    HASH_SET next "id" (ADD id 1)
+    HASH_SET next "queryData" queryData
