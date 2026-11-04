@@ -23,10 +23,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # NOTE: test/ci.sh decides if clientVBML needs a new build.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: build/ci/bin
           key: client-${{ github.run_id }}
@@ -39,13 +39,13 @@ jobs:
         run: sh test/ci.sh "$LEVEL" "$BACKEND"
 
       # NOTE: We keep the build even when a test fails.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         if: always()
         with:
           path: build/ci/bin
           key: client-${{ github.run_id }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: results

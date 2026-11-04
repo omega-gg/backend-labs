@@ -23,10 +23,16 @@ Version/26.0 Safari/605.1.15"
 # Functions
 #--------------------------------------------------------------------------------------------------
 
+# Sends a request to the player. 1: url parameters, 2: body, then any curl options.
 post()
 {
-    curl -s --compressed -X POST "$player$1" -H "User-Agent: $agent" \
-         -H "Content-Type: application/json" -d "$2" "$3" "$4" "$5" "$6"
+    parameters=$1
+    data=$2
+
+    shift 2
+
+    curl -s --compressed -X POST "$player$parameters" -H "User-Agent: $agent" \
+         -H "Content-Type: application/json" -d "$data" "$@"
 }
 
 # Prints the rate of a download compared to the playback. 1: url, 2: seconds, 3: range or empty.

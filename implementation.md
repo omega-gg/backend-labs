@@ -84,10 +84,10 @@ Two kinds of noise to know about when reading a run. `twitch TRACK` varies in it
 
 ### On GitHub's servers
 
-First CI run, 2026-11-04: `clientVBML` builds in about 6 minutes and the tests take 44 s. 53 of 78 cases pass. The differences with the table above:
+First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the tests take 44 s. 53 of 78 cases pass. The differences with the table above:
 
-- **youtube:** all 7 `TRACK` cases have no sources, while feeds, search and related pass. This may be YouTube refusing data center addresses, not confirmed yet. `sh test/ci.sh measure` from the Actions tab shows the status.
-- **twitch:** `TRACK LIVE` crashed clientVBML with exit code 139 once, and it passes locally. The cause is not known.
+- **youtube:** all 7 `TRACK` cases have no sources in both runs, while feeds, search and related pass. YouTube seems to refuse the player request from data center addresses: `sh test/ci.sh measure` from the Actions tab gets 600 bytes where a home connection gets 13.4 KB, while the watch page still works. The exact status is not confirmed yet.
+- **twitch:** it varies between runs. `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. `TRACK` once took 14 requests with no title, probably the `reload` limit of 10 on an empty page.
 - **vox:** it times out there too, so this is not specific to one network.
 
 ## YouTube
