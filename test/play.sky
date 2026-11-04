@@ -1,0 +1,137 @@
+import QtQuick
+import Sky
+
+// Template for the play test in common.sh. Plays a source for a few seconds, then seeks to the
+// middle and quits. Writes the results to result.txt as shell variables.
+Item
+{
+    id: root
+
+    property string dir: "@DIR@"
+
+    property double start: Date.now()
+    property double stepStart: 0
+
+    property int windowTime: 0
+
+    property int buffering: 0
+
+    // NOTE: 0 waiting, 1 opening, 2 settling, 3 playing, 4 seeking, 5 done.
+    property int step: 0
+
+    property string text
+
+    width: 1920; height: 1080
+
+    function write(line)
+    {
+        text += line + "\n";
+
+        core.writeFile(dir + "result.txt", text);
+    }
+
+    function finish()
+    {
+        step = 5;
+
+        Qt.callLater(sk.quit);
+    }
+
+    function fail(error)
+    {
+        write("error='" + error + "'");
+
+        finish();
+    }
+
+    Player
+    {
+        id: player
+
+        anchors.fill: parent
+
+        quality: AbstractBackend.Quality@QUALITY@
+
+        volume: 0.0
+
+        Component.onCompleted: core.applyBackend(player)
+
+        onStateLoadChanged:
+        {
+            if (root.step == 3 && isBuffering) root.buffering++;
+        }
+    }
+
+    Timer
+    {
+        interval: 50; running: true; repeat: true
+
+        onTriggered:
+        {
+            var now = Date.now();
+
+            var time = now - root.stepStart;
+
+            // NOTE: We wait 3 s for the runtime to load its backends.
+            if (root.step == 0 && now - root.start > 3000)
+            {
+                root.step = 1;
+
+                root.stepStart = now;
+
+                player.source = "@SOURCE@";
+
+                player.play();
+            }
+            else if (root.step == 1)
+            {
+                if (player.currentTime > 0 && player.isLoading == false)
+                {
+                    root.write("playing=" + time);
+
+                    root.step = 2;
+
+                    root.stepStart = now;
+                }
+                else if (time > 15000) root.fail("open timeout");
+            }
+            // NOTE: We ignore the first 2 s, while the player fills its buffers.
+            else if (root.step == 2 && time > 2000)
+            {
+                root.step = 3;
+
+                root.stepStart = now;
+
+                root.windowTime = player.currentTime;
+            }
+            else if (root.step == 3 && time > @SECONDS@ * 1000)
+            {
+                root.write("played=" + (player.currentTime - root.windowTime));
+                root.write("wall=" + time);
+                root.write("buffering=" + root.buffering);
+
+                // NOTE: A live stream has no duration to seek in.
+                if (player.duration > 0)
+                {
+                    root.step = 4;
+
+                    root.stepStart = now;
+
+                    player.seek(player.duration / 2);
+                }
+                else root.finish();
+            }
+            else if (root.step == 4)
+            {
+                if (player.isLoading == false
+                    && player.currentTime >= player.duration / 2 - 100)
+                {
+                    root.write("seek=" + time);
+
+                    root.finish();
+                }
+                else if (time > 20000) root.fail("seek timeout");
+            }
+        }
+    }
+}
