@@ -17,7 +17,7 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 | `doc/plan/` | Plans |
 | `test/` | CLI test suite for every backend, with a baseline for home connections and one for the CI |
 | `.github/` | CI workflow that runs the test suite |
-| `reference.lock` | Commit of each clone below |
+| `resync.lock` | Our commit and the public commit of the last resync |
 | `vbml/` | Our backends, synced with the public backend repository from time to time |
 | `reference/` | Clones of yt-dlp, NewPipeExtractor and YoutubeExplode, not committed here |
 
@@ -26,8 +26,8 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 The clones keep their own history, which keeps this repository small.
 
 ```sh
-sh setup.sh    # clones reference at the commits in reference.lock
-sh pull.sh     # pulls reference, updates reference.lock, reports YouTube client changes
+sh setup.sh    # clones reference
+sh pull.sh     # pulls reference, reports YouTube client changes
 ```
 
 ## Using the reference projects

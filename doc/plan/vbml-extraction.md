@@ -15,11 +15,10 @@ Pushing to that repo is the sensitive step. Installed deploy builds fetch backen
 ```
 backend-labs/
   .gitignore         ignores vbml/ and reference/
-  setup.sh           clones the reference repos at the hashes in reference.lock
-  pull.sh            pulls them, rewrites reference.lock, reports watched changes
+  setup.sh           clones the reference repos
+  pull.sh            pulls them, reports watched changes
   resync.sh          lists what is pending for omega-gg/backend, resync.md explains the steps
   resync.lock        our commit and the public commit of the last resync
-  reference.lock     commit hash of each clone
   manual.md          how to run the tests
   implementation.md  technical findings
   doc/plan/          copies of our plans

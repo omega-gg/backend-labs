@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+# Clones the reference projects, you only need them to read the public extractors.
+
 #--------------------------------------------------------------------------------------------------
 # Settings
 #--------------------------------------------------------------------------------------------------
@@ -8,27 +10,25 @@ set -e
 root=$(dirname "$(readlink -f "$0")")
 
 #--------------------------------------------------------------------------------------------------
+# Functions
+#--------------------------------------------------------------------------------------------------
+
+clone()
+{
+    if [ -e "$root/reference/$1" ]; then
+
+        echo "$1: already there"
+    else
+        echo "$1: cloning"
+
+        git clone --quiet "$2" "$root/reference/$1"
+    fi
+}
+
+#--------------------------------------------------------------------------------------------------
 # Clone
 #--------------------------------------------------------------------------------------------------
 
-# NOTE: We read from a dedicated descriptor because ssh consumes stdin.
-while read -r path url branch hash <&3; do
-
-    case "$path" in
-        ""|\#*) continue;;
-    esac
-
-    if [ -e "$root/$path" ]; then
-
-        echo "$path: already there"
-
-        continue
-    fi
-
-    echo "$path: cloning"
-
-    git clone --quiet --branch "$branch" "$url" "$root/$path"
-
-    git -C "$root/$path" reset --quiet --hard "$hash"
-
-done 3< "$root/reference.lock"
+clone yt-dlp https://github.com/yt-dlp/yt-dlp
+clone NewPipeExtractor https://github.com/TeamNewPipe/NewPipeExtractor
+clone YoutubeExplode https://github.com/Tyrrrz/YoutubeExplode
