@@ -55,6 +55,7 @@ clientVBML crashed this way (exit code 139) on failed queries. It now defers the
 
 - qmake replaces the word `debug` in `DESTDIR` under `debug_and_release`, so a custom output folder can't have that word in its name.
 - A VPN or a filtering network makes blocked sites look like backend failures. All baselines have to come from an unfiltered network.
+- The first launch of a freshly built clientVBML is slower, 9.6 s against 4.5 s for the same query, and maybe security software scanning it. After a rebuild, the first run can time out on a few cases and is worth rerunning.
 - Not explained yet: `sky` logs `ControllerCore::loadData: Failed to load .../bin/bin/skz/run/mport.sky` when running a script that starts with `import`. It looks like `import` gets misread, and playback still works.
 
 ## State of the backends
@@ -114,7 +115,7 @@ VISIONOS responses have direct `url` fields with no `signatureCipher` and no `n`
 
 From one run of `sh test/measure-youtube.sh`, on `aqz-KE-bpKQ`, 2026-11-04, compressed size. To be confirmed through the engine.
 
-clientVBML logs 4 requests for a YouTube track and 6 for a live one, with the watch page requested 3 times. It asks for the track and the media at once, so part of this may not apply to the players.
+A track costs 2 watch pages and 1 player request on first play: one watch page for `visitorData`, one for the metadata. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
 
 | Step | Today | Candidate |
 | --- | --- | --- |
