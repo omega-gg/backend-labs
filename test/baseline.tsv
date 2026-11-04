@@ -10,9 +10,9 @@ duckduckgo	SEARCH TRACKS A	OK	2739	3
 duckduckgo	SEARCH TRACKS B	OK	2797	3
 duckduckgo	SEARCH TRACKS C	OK	2426	3
 duckduckgo	SEARCH URLS	OK	2121	1
-facebook	FEED	OK	3158	1
-facebook	RELATED	FAIL	1776	1
-facebook	TRACK	FAIL	2211	2
+facebook	FEED	OK	1755	1
+facebook	RELATED	FAIL	1449	1
+facebook	TRACK	OK	1791	2
 failure	FEED	OK	4998	
 failure	TRACK	OK	4728	
 failure	TRENDING	OK	4922	

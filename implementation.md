@@ -77,7 +77,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | odysee | 3/3 | | Streams valid. Very recent uploads can have no source yet |
 | soundcloud | 6/6 | | Streams valid |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
-| facebook | 1/3 | `TRACK` no sources, `RELATED` | See below |
+| facebook | 2/3 | `RELATED` | Streams valid, 720p on the videos tried |
 | tiktok | 0/1 | `TRACK` varies | See below |
 | opensubtitles | 1/1 | | |
 
@@ -173,7 +173,7 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 - **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times. Channels use GQL too since 1.0.33: their page lists clips as `VideoObject`, so the backend took any channel with clips as live, with the clip description in the title and a broken feed.
 
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
-- **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".
+- **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 and `video.php` and the mobile site go to a login, see `sh test/measure-facebook.sh`. Since 1.0.11 sources come from the page websites embed, `video/embed?video_id=`, which holds a `dash_manifest` without a login: VP9 and separate audio, 720p on the videos tried, with 540p coming out under `default`. It also has `hd_src` and `sd_src`, MP4 files with H.264 and audio, not compared yet. A video that is gone has no sources, and the backend then returns a wrong title, "Discover Popular Videos".
 - **Last.fm:** removed in index 1.0.299. Every page answered a 3 KB challenge page, and its API needs a key. Youtube Music replaces it, for music search and audio covers.
 - **Youtube Music:** InnerTube `search` and `browse` on `music.youtube.com` with `WEB_REMIX`, no key needed. The `params` of a search pick songs, albums or artists. Tracks point at `www.youtube.com/watch?v=`, so playback, metadata and related stay with `youtube`. An album takes 1 request, and its tracks have no thumbnail of their own, so they get the album cover. An artist takes 2, because its page only lists the top songs, with a `VL` playlist for the rest when there is one. Thumbnails hold their size, so `w60-h60` can become `w544-h544`. Links to `music.youtube.com/watch` are not handled. From `sh test/youtubemusic.sh`, 2026-11-04: 0.6 to 1.2 s per query.
 - **IPTV:** iptv-org moved the logos out of `channels.json` to `logos.json`, 846 KB, so a search takes a third request since 1.0.10. About 1.4% of the logos are SVG, which may not display. A search matches channel ids, so `cnn` also finds `RCNNovelas`.

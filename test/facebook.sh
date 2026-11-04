@@ -10,7 +10,7 @@
 
 begin facebook "$@"
 
-test "TRACK" "https://www.facebook.com/watch/?v=1839090492859799"
+test "TRACK" "https://www.facebook.com/watch/?v=1832812847552846"
 
 test "FEED" "https://www.facebook.com/starcraftremasterizado/videos"
 

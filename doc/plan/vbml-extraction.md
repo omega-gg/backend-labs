@@ -83,7 +83,8 @@ Still open, each only for a measurable gain:
 - **SoundCloud:** the feed is fixed.
 - **TikTok:** to do later, with the web route and its engine changes, see `implementation.md`.
 - **Youtube Music:** replaces Last.fm, with tracks, albums and artists. Tracks play through `youtube`.
-- **Blocked:** Vimeo sources and Facebook sources, see `implementation.md`.
+- **Facebook:** sources fixed in 1.0.11, from the embed page. `RELATED` still fails.
+- **Blocked:** Vimeo sources, see `implementation.md`.
 
 ### Engine proposals (suggest only)
 
