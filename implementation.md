@@ -73,13 +73,12 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | twitter | 1/1 | | Stream valid, title and cover only |
 | iptv | 1/1 | | |
 | odysee | 1/1 | | Stream returns HTTP 401 to curl, it may need a header |
-| soundcloud | 5/6 | `FEED`, HTTP 302 on its API | Streams valid |
+| soundcloud | 6/6 | | Streams valid |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
-| facebook | 1/3 | `TRACK` HTTP 401, `RELATED` | |
-| lastfm | 1/5 | `FEED`, `RELATED`, `SEARCH TRACKS`, `COVER` | |
-| tiktok | 0/1 | `TRACK`, HTTP 299 on its API | |
-| opensubtitles | 0/1 | `SEARCH SUBTITLES`, no entries | |
-| vox | 0/7 | Connection times out | |
+| facebook | 1/3 | `TRACK` no sources, `RELATED` | See below |
+| lastfm | 1/5 | `FEED`, `RELATED`, `SEARCH TRACKS`, `COVER` | See below |
+| tiktok | 0/1 | `TRACK` varies | See below |
+| opensubtitles | 1/1 | | |
 
 One kind of noise to know about when reading a run: during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
 
@@ -91,7 +90,6 @@ First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the te
 
   The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
 - **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known.
-- **vox:** it times out there too, so this is not specific to one network.
 
 ## YouTube
 
@@ -171,8 +169,13 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 Found by reading the backends and yt-dlp, not yet measured.
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
-- **Vimeo:** 2 source requests on first play, then 1. Uses only the API `download` field, so videos without downloads have no sources. yt-dlp's `player.vimeo.com` route can need TLS impersonation, which scripts cannot do.
+- **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens.
 - **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times.
+
+- **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
+- **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".
+- **Last.fm:** every page answers a 3 KB challenge page, with both user agents tried. `TRACK` passes with the title `-`, so that result is not real.
+- **TikTok:** with `sh test/measure-tiktok.sh`, the app API answered HTTP 429 3 times out of 5. When it answers, it can return another video: the backend got the author `richyarvizu` and 15 s for a 24 s video from `@tiktok`. The web page has the metadata and `playAddr` in 406 KB, and that stream answers 403 without the cookies of the page, which VBML can't pass on to the player.
 
 ### Twitch live ads
 
@@ -188,3 +191,4 @@ Suggestions only.
 - Allow parallel requests in source flows, to race clients.
 - Expose response status and headers to scripts.
 - Expose download speed on the player, for playback tests.
+- Pass cookies from a query on to the player, for TikTok web streams.

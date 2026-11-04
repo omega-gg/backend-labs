@@ -41,7 +41,7 @@ export TEST_RESULTS
 
 : > "$TEST_RESULTS"
 
-scripts="failure duckduckgo youtube dailymotion vimeo twitter facebook odysee peertube vox iptv
+scripts="failure duckduckgo youtube dailymotion vimeo twitter facebook odysee peertube iptv
          twitch tiktok soundcloud tmdb lastfm opensubtitles"
 
 # NOTE: The backends run at the same time, so this takes as long as the slowest one. Playback runs

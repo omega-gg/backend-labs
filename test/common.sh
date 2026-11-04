@@ -206,7 +206,7 @@ run()
 {
     log="$work/$(echo "$1" | tr ' ' '-')"
 
-    rm -f "$work/output.vbml"
+    rm -f "$work/output.vbml" "$log.vbml"
     rm -rf "$work/storage"
 
     start=$(date +%s%N)
@@ -402,7 +402,7 @@ test()
             details="no cover"
         fi;;
     *)
-        if ! has '^ *\(track\|folder\|playlist\):'; then
+        if ! has '^ *\(track\|folder\|playlist\|item\):'; then
 
             status="FAIL"
 

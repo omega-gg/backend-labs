@@ -10,6 +10,6 @@
 
 begin tiktok "$@"
 
-test "TRACK" "https://www.tiktok.com/@astroshooter__/video/7196395432459636010"
+test "TRACK" "https://www.tiktok.com/@tiktok/video/7106594312292453675"
 
 finish
