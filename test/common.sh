@@ -181,7 +181,12 @@ result()
 
     if [ -n "$4" ]; then
 
-        line="$line, $4 requests (baseline ${was_time:-?} ms, ${was_requests:-?} requests)"
+        line="$line, $4 requests"
+    fi
+
+    if [ -n "$was_time" ] && [ -n "$was_requests" ]; then
+
+        line="$line (baseline $was_time ms, $was_requests requests)"
     fi
 
     echo "$line $5"
@@ -209,6 +214,14 @@ run()
     fi
 
     time=$((($(date +%s%N) - start) / 1000000))
+
+    # NOTE: On the CI this is the only way to see where it crashed without getting the artifact.
+    if [ "$code" = "139" ]; then
+
+        echo "CRASH, the end of the log:"
+
+        tail -8 "$log.log" | cut -c1-200
+    fi
 
     # NOTE: Every download gets logged as "Get <url>", POST requests included.
     requests=$(grep -ac '^Get http' "$log.log")

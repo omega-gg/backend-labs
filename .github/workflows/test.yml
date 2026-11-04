@@ -12,7 +12,7 @@ on:
       level:
         description: Test level
         type: choice
-        options: [extract, stream, throttle]
+        options: [extract, stream, throttle, measure]
         default: extract
       backend:
         description: Branch of omega-gg/backend to test
@@ -22,51 +22,31 @@ jobs:
   test:
     runs-on: windows-latest
     timeout-minutes: 90
-    defaults:
-      run:
-        shell: bash
-    env:
-      LEVEL: ${{ inputs.level || 'extract' }}
-      BACKEND: ${{ inputs.backend || 'master' }}
     steps:
       - uses: actions/checkout@v4
 
-      # NOTE: We only rebuild clientVBML when clientVBML or Sky changed.
-      - name: Get the clientVBML and Sky versions
-        id: versions
-        run: |
-          client=$(git ls-remote https://github.com/omega-gg/clientVBML HEAD | cut -f1)
-          sky=$(git ls-remote https://github.com/omega-gg/Sky HEAD | cut -f1)
-          echo "key=clientVBML-$client-$sky" >> "$GITHUB_OUTPUT"
-
-      - name: Restore clientVBML
-        id: cache
-        uses: actions/cache@v4
+      # NOTE: test/ci.sh decides if clientVBML needs a new build.
+      - uses: actions/cache/restore@v4
         with:
-          path: build/ci/clientVBML/bin
-          key: ${{ steps.versions.outputs.key }}
+          path: build/ci/bin
+          key: client-${{ github.run_id }}
+          restore-keys: client-
 
-      - name: Build clientVBML
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: sh test/build-client.sh
+      - shell: bash
+        env:
+          LEVEL: ${{ inputs.level || 'extract' }}
+          BACKEND: ${{ inputs.backend || 'master' }}
+        run: sh test/ci.sh "$LEVEL" "$BACKEND"
 
-      - name: Get the backends
-        run: git clone --depth 1 --branch "$BACKEND" https://github.com/omega-gg/backend vbml
-
-      - name: Install ffprobe
-        if: env.LEVEL != 'extract'
-        run: choco install ffmpeg --no-progress -y
-
-      - name: Run the tests
-        run: |
-          export PATH="$PATH:/c/ProgramData/chocolatey/bin"
-          export CLIENT_BIN="$PWD/build/ci/clientVBML/bin"
-          export BASELINE="$PWD/test/baseline-ci.tsv"
-          sh test/all.sh "$LEVEL"
-
-      - name: Keep the results
+      # NOTE: We keep the build even when a test fails.
+      - uses: actions/cache/save@v4
         if: always()
-        uses: actions/upload-artifact@v4
+        with:
+          path: build/ci/bin
+          key: client-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: results
           path: build/results

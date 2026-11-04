@@ -1,4 +1,7 @@
-# backend-labs
+backend-labs
+---
+[![Discord](https://img.shields.io/discord/705770212485496852)](https://omega.gg/discord)
+[![CI](https://github.com/omega-gg/backend-labs/actions/workflows/test.yml/badge.svg)](https://github.com/omega-gg/backend-labs/actions/workflows/test.yml)
 
 Turns the video platform knowledge in public extractors into fast VBML backends for MotionBox, MotionMonkey, tevolution, tevo and Sky-runtime.
 

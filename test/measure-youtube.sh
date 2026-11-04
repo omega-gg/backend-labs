@@ -62,6 +62,10 @@ post "" "$(echo "$body" | sed "s/$visitor//")" | grep -o '"status":"[A-Z_]*"' | 
 printf 'player: '
 post "" "$body" -o /dev/null -w "$fields"
 
+printf 'player status: '
+post "" "$body" | grep -o '"status":"[A-Z_]*"\|"reason":"[^"]*"' | head -2 | tr '\n' ' '
+echo ""
+
 printf 'player with fields: '
 post '&$fields=playabilityStatus,streamingData,videoDetails' "$body" -o /dev/null -w "$fields"
 

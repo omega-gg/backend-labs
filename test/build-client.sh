@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Builds clientVBML from scratch in build/ci on Windows, this is what the CI runs. It takes a while
+# Builds clientVBML in build/ci on Windows, and puts the result in build/ci/bin. It takes a while
 # the first time, because it downloads Qt and the other dependencies.
 
 #--------------------------------------------------------------------------------------------------
@@ -23,6 +23,10 @@ cd "$root/build/ci"
 if [ ! -d clientVBML ]; then
 
     git clone --depth 1 https://github.com/omega-gg/clientVBML
+else
+    git -C clientVBML pull
+
+    git -C Sky pull
 fi
 
 cd clientVBML
@@ -47,16 +51,20 @@ sh build.sh $platform
 # Deploy
 #--------------------------------------------------------------------------------------------------
 
-# NOTE: This way the bin folder works on its own and can be cached.
+# NOTE: This way the folder works on its own and can be cached.
 Qt=$(ls -d ../3rdparty/$platform/Qt/*/ | tail -1)
 
-mkdir -p bin/tls
+bin=../bin
 
-cp "$Qt"bin/Qt6Core.dll        bin
-cp "$Qt"bin/Qt6Core5Compat.dll bin
-cp "$Qt"bin/Qt6Network.dll     bin
-cp "$Qt"bin/Qt6Qml.dll         bin
-cp "$Qt"bin/Qt6Xml.dll         bin
+mkdir -p $bin/tls
 
-cp "$Qt"plugins/tls/qopensslbackend.dll  bin/tls
-cp "$Qt"plugins/tls/qschannelbackend.dll bin/tls
+cp bin/* $bin 2> /dev/null || true
+
+cp "$Qt"bin/Qt6Core.dll        $bin
+cp "$Qt"bin/Qt6Core5Compat.dll $bin
+cp "$Qt"bin/Qt6Network.dll     $bin
+cp "$Qt"bin/Qt6Qml.dll         $bin
+cp "$Qt"bin/Qt6Xml.dll         $bin
+
+cp "$Qt"plugins/tls/qopensslbackend.dll  $bin/tls
+cp "$Qt"plugins/tls/qschannelbackend.dll $bin/tls

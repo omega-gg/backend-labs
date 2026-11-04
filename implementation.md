@@ -82,6 +82,14 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 
 Two kinds of noise to know about when reading a run. `twitch TRACK` varies in its request count, probably because its backend retries on an empty channel page. And during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
 
+### On GitHub's servers
+
+First CI run, 2026-11-04: `clientVBML` builds in about 6 minutes and the tests take 44 s. 53 of 78 cases pass. The differences with the table above:
+
+- **youtube:** all 7 `TRACK` cases have no sources, while feeds, search and related pass. This may be YouTube refusing data center addresses, not confirmed yet. `sh test/ci.sh measure` from the Actions tab shows the status.
+- **twitch:** `TRACK LIVE` crashed clientVBML with exit code 139 once, and it passes locally. The cause is not known.
+- **vox:** it times out there too, so this is not specific to one network.
+
 ## YouTube
 
 ### Clients

@@ -24,7 +24,7 @@ If you don't have a clientVBML build, this one takes a while the first time and 
 
 ```sh
 sh test/build-client.sh
-CLIENT_BIN=$PWD/build/ci/clientVBML/bin sh test/all.sh
+CLIENT_BIN=$PWD/build/ci/bin sh test/all.sh
 ```
 
 Don't use a build made with `sh build.sh <platform> all` or `deploy`. A deploy build ignores the local backends and downloads the public ones, and the tests stop when they see that.
@@ -102,12 +102,20 @@ sh test/all.sh baseline
 
 ## CI
 
-`.github/workflows/test.yml` runs the tests on GitHub: on every push and pull request, and once a day because sites change on their own. You can also start it from the Actions tab, with a level and a branch of the public backend repository.
+The workflow in `.github/workflows/test.yml` is a thin wrapper around this script, which you can run yourself:
 
-- It tests what is public, so the `labs` branch has to be pushed to the backend repository first. Installed players only follow `master`, so that branch stays out of their way.
-- `sh test/build-client.sh` builds clientVBML. It takes a while the first time, then the workflow reuses the result until clientVBML or Sky changes.
+```sh
+sh test/ci.sh                   # builds clientVBML if needed, then runs the tests
+sh test/ci.sh stream my-branch  # with a level, and a branch of the public backend repository
+sh test/ci.sh measure           # how YouTube treats this network, with measure-youtube.sh
+```
+
+It runs on every push and pull request, and once a day because sites change on their own. You can also start it from the Actions tab.
+
+- On GitHub it tests what is public, so the `labs` branch has to be pushed to the backend repository first. Installed players only follow `master`, so that branch stays out of their way. Locally it uses your `vbml` folder.
+- It takes a while the first time, then clientVBML is only built again when clientVBML or Sky changes.
 - There is no `play` level, because it needs a Sky-runtime build and a screen.
-- The results are in the `results` artifact of each run.
+- On GitHub, the results are in the `results` artifact of each run.
 
 GitHub's servers don't answer like a home connection, and some sites can refuse them, so the CI has its own baseline in `test/baseline-ci.tsv`. To update it, download `all.tsv` from the `results` artifact of a run you trust, then:
 
