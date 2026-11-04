@@ -21,7 +21,8 @@ backend-labs/
   manual.md          how to run the tests
   implementation.md  technical findings
   doc/plan/          copies of our plans
-  test/              CLI test suite: one script per backend, all.sh, common.sh, baseline.tsv
+  test/              CLI test suite: one script per backend, all.sh, common.sh, baselines
+  .github/           CI workflow that runs the test suite
   vbml/              clone of omega-gg/backend, work happens on a local `labs` branch
   reference/         yt-dlp, NewPipeExtractor, YoutubeExplode
 ```
@@ -39,6 +40,7 @@ Bash scripts in `test/`, in the style of `clientVBML/test`, documented in `manua
 - They run often, so they are quick: every backend in about a minute, because backends run in parallel. No retries.
 - Throttling is opt-in, with the `throttle` level and `PLAY_SECONDS`, for when we have doubts.
 - All 72 active `clientVBML/test` cases are reused.
+- They also run from GitHub CI, with their own baseline since GitHub's servers can get different answers from sites. Playback stays local, because it needs a Sky-runtime build and a screen.
 
 Results compare with `test/baseline.tsv`: `REGRESSION` when a case that passed now fails or needs more requests, `KNOWN` when it failed in the baseline too.
 
@@ -50,7 +52,10 @@ After M1, each step is one small backend change: bump `version:`, update the ind
 
 The repository layout, `manual.md`, the test suite, `baseline.tsv` and the state of each backend in `implementation.md`.
 
-Still to do from M1: refresh the cases that fail only because their URL is stale, and note each one.
+Still to do:
+
+- Refresh the cases that fail only because their URL is stale, and note each one.
+- Get the CI through its first run, record `test/baseline-ci.tsv`, and write down in `implementation.md` how sites treat GitHub's servers.
 
 ### M2. YouTube, one change at a time
 

@@ -11,7 +11,8 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 | `manual.md` | How to run the tests |
 | `implementation.md` | Technical findings |
 | `doc/plan/` | Plans |
-| `test/` | CLI test suite for every backend |
+| `test/` | CLI test suite for every backend, with a baseline for home connections and one for the CI |
+| `.github/` | CI workflow that runs the test suite |
 | `reference.lock` | Commit of each clone below |
 | `vbml/` | Clone of the public backend repository, not committed here |
 | `reference/` | Clones of yt-dlp, NewPipeExtractor and YoutubeExplode, not committed here |

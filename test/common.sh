@@ -20,7 +20,8 @@ backend="$root/build/backend"
 
 results="$root/build/results"
 
-baseline="$directory/baseline.tsv"
+# NOTE: Sites can answer differently from another network, the CI has its own baseline.
+baseline=${BASELINE:-$directory/baseline.tsv}
 
 # NOTE: A query usually takes a few seconds, so this fails fast on a site that's unreachable.
 timeout_client=20
@@ -211,6 +212,18 @@ run()
 
     # NOTE: Every download gets logged as "Get <url>", POST requests included.
     requests=$(grep -ac '^Get http' "$log.log")
+
+    # NOTE: Then we are not testing the local backends, so the results would be misleading.
+    if grep -aq '^Get https://raw.githubusercontent.com/omega-gg/backend' "$log.log"; then
+
+        result "$1" "FAIL" "" "" "stopped, clientVBML downloaded its backends from GitHub"
+
+        echo "Check that it's not a deploy build, and that the versions match: sh test/lint.sh"
+
+        finish
+
+        exit 0
+    fi
 
     if [ -f "$work/output.vbml" ]; then
 

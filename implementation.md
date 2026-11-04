@@ -43,6 +43,8 @@ Technical findings on reaching video bytes quickly from VBML. Numbers are measur
 
 There is no command line or environment override. Tests therefore run in a copied folder layout.
 
+`sh build.sh <platform> all` makes a deploy build, because it ends with `build.sh <platform> deploy`. So testing local backends needs the separate steps, as in `test/build-client.sh`.
+
 ### Quitting from a handler
 
 `QCoreApplication::exit()` emits `aboutToQuit` right away in Qt 6.10, and `WControllerApplicationPrivate::onAboutToQuit` then deletes every controller. Calling it from a query signal crashes when the stack unwinds, as `WControllerPlaylistPrivate::onLoaded` goes on to `delete data` after `setQueryDefault()`. Only failed requests reach this path, since success paths have nothing left to do.

@@ -7,7 +7,7 @@ How to test the VBML backends from a bash command line. On Windows, use Git Bash
 | Tool | For | Required |
 | --- | --- | --- |
 | `curl`, `git` | everything | yes |
-| [clientVBML](https://github.com/omega-gg/clientVBML) built, with `sh build.sh win64 all` | all the tests | yes |
+| A dev build of [clientVBML](https://github.com/omega-gg/clientVBML) | all the tests | yes |
 | [Sky-runtime](https://github.com/omega-gg/Sky-runtime) built, with Qt and MinGW in your `PATH` | `play` level | for `play` |
 | `ffprobe` in your `PATH` | codec checks, `throttle` level | no, skipped without it |
 | `gdb` in your `PATH` | `backtrace.sh` | no |
@@ -18,7 +18,16 @@ The tests look for these builds next to this repository, in `../clientVBML/bin` 
 CLIENT_BIN=/path/to/clientVBML/bin sh test/all.sh
 ```
 
-The tests only use copies inside `build/`, so they never change your builds or their storage. Building is different: `sh build.sh win64 all` wipes `clientVBML/bin`, so move out anything of yours first.
+The tests only use copies inside `build/`, so they never change your builds or their storage.
+
+If you don't have a clientVBML build, this one takes a while the first time and stays inside `build/`:
+
+```sh
+sh test/build-client.sh
+CLIENT_BIN=$PWD/build/ci/clientVBML/bin sh test/all.sh
+```
+
+Don't use a build made with `sh build.sh <platform> all` or `deploy`. A deploy build ignores the local backends and downloads the public ones, and the tests stop when they see that.
 
 Use an unfiltered network. A VPN or a company network can block video sites, and those blocks look like backend failures.
 
@@ -89,6 +98,21 @@ Each case keeps what it returned in `build/results/<backend>/`: the `.vbml` outp
 ```sh
 sh test/all.sh stream
 sh test/all.sh baseline
+```
+
+## CI
+
+`.github/workflows/test.yml` runs the tests on GitHub: on every push and pull request, and once a day because sites change on their own. You can also start it from the Actions tab, with a level and a branch of the public backend repository.
+
+- It tests what is public, so the `labs` branch has to be pushed to the backend repository first. Installed players only follow `master`, so that branch stays out of their way.
+- `sh test/build-client.sh` builds clientVBML. It takes a while the first time, then the workflow reuses the result until clientVBML or Sky changes.
+- There is no `play` level, because it needs a Sky-runtime build and a screen.
+- The results are in the `results` artifact of each run.
+
+GitHub's servers don't answer like a home connection, and some sites can refuse them, so the CI has its own baseline in `test/baseline-ci.tsv`. To update it, download `all.tsv` from the `results` artifact of a run you trust, then:
+
+```sh
+cut -f1-5 all.tsv | sort > test/baseline-ci.tsv
 ```
 
 ## Other scripts
