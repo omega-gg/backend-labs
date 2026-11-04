@@ -71,4 +71,25 @@ check "plugin" "$base/plugins/video.php?href=$base%2Fwatch%2F%3Fv%3D$id"
 
 check "mobile" "https://m.facebook.com/watch/?v=$id"
 
+#--------------------------------------------------------------------------------------------------
+# Embed sources
+#--------------------------------------------------------------------------------------------------
+
+curl -s --ssl-no-revoke --compressed -A "$agent" "$base/video/embed?video_id=$id" -o "$file"
+
+echo "manifest:" $(grep -ao 'FBQualityLabel=[^0-9]*[0-9]*p' "$file" | grep -o '[0-9]*p$')
+
+if command -v ffprobe > /dev/null; then
+
+    for name in hd_src sd_src; do
+
+        source=$(sed -n "s/.*\"$name\":\"\([^\"]*\)\".*/\1/p" "$file" | sed 's/\\//g' | head -1)
+
+        printf '%s: ' "$name"
+
+        ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height \
+                -of csv=p=0 "$source"
+    done
+fi
+
 rm -f "$file"
