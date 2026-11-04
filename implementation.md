@@ -89,7 +89,7 @@ First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the te
 
 - **youtube:** all 7 `TRACK` cases have no sources in both runs, while feeds, search and related pass. YouTube refuses the player request from GitHub's servers: `sh test/ci.sh measure` from the Actions tab gets `LOGIN_REQUIRED`, "Sign in to confirm you're not a bot", while the watch page still works. So YouTube sources and playback can only be tested from a home connection.
 
-  The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags, but a user on such a network would see it.
+  The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
 - **twitch:** it varies between runs. `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. `TRACK` once took 14 requests with no title, probably the `reload` limit of 10 on an empty page.
 - **vox:** it times out there too, so this is not specific to one network.
 
@@ -148,9 +148,8 @@ Open-ended requests are paced at about 2x playback rate, and 10 MB ranges are no
 
 This does not hurt on the test machine: `sh test/youtube.sh play` gives 1.00x with no buffering at 4K60 and 1080p60. Machines without AV1 hardware decoding are not tested.
 
-### Known issues in youtube.vbml 1.0.130
+### Known issues in youtube.vbml 1.0.131
 
-- On a network YouTube flags, `EXTRACT_TRACK` returns wrong metadata instead of nothing, see above.
 - Live in default mode refetches with ANDROID, costing 3 to 4 requests.
 - The comment above the `UNPLAYABLE` fallback mentions `ANDROID_VR`, and the code uses ANDROID.
 
