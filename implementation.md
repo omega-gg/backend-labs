@@ -65,6 +65,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | Backend | Queries passing | Failing | Streams and playback |
 | --- | --- | --- | --- |
 | youtube | 13/13 | | Streams valid. 4K60 and 1080p60 play at 1.00x with no buffering |
+| youtubemusic | 8/8 | | Metadata only, tracks play through `youtube` |
 | tmdb | 10/10 | | Metadata only |
 | twitch | 7/7 | | HLS valid. Plays at 1.00x with no buffering |
 | peertube | 6/6 | | Streams valid. Blocked on some filtering networks |
@@ -76,7 +77,6 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | soundcloud | 6/6 | | Streams valid |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
 | facebook | 1/3 | `TRACK` no sources, `RELATED` | See below |
-| lastfm | 1/5 | `FEED`, `RELATED`, `SEARCH TRACKS`, `COVER` | See below |
 | tiktok | 0/1 | `TRACK` varies | See below |
 | opensubtitles | 1/1 | | |
 
@@ -172,7 +172,8 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
 - **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".
-- **Last.fm:** every page answers a 3 KB challenge page, with both user agents tried. `TRACK` passes with the title `-`, so that result is not real.
+- **Last.fm:** removed in index 1.0.299. Every page answered a 3 KB challenge page, and its API needs a key. Youtube Music replaces it, for music search and audio covers.
+- **Youtube Music:** InnerTube `search` and `browse` on `music.youtube.com` with `WEB_REMIX`, no key needed. The `params` of a search pick songs, albums or artists. Tracks point at `www.youtube.com/watch?v=`, so playback, metadata and related stay with `youtube`. An album takes 1 request, and its tracks have no thumbnail of their own, so they get the album cover. An artist takes 2, because its page only lists the top songs, with a `VL` playlist for the rest when there is one. Thumbnails hold their size, so `w60-h60` can become `w544-h544`. Links to `music.youtube.com/watch` are not handled. From `sh test/youtubemusic.sh`, 2026-11-04: 0.6 to 1.2 s per query.
 - **IPTV:** iptv-org moved the logos out of `channels.json` to `logos.json`, 846 KB, so a search takes a third request since 1.0.10. About 1.4% of the logos are SVG, which may not display. A search matches channel ids, so `cnn` also finds `RCNNovelas`.
 - **TikTok:** unreliable for now, see below.
 

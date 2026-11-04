@@ -132,6 +132,8 @@ sh test/measure-youtube.sh       # what each YouTube request costs, and how stre
 sh test/measure-youtube-live.sh  # the YouTube live manifests of the VISIONOS and ANDROID clients
 sh test/measure-twitch.sh        # the Twitch video page against its GraphQL API
 sh test/measure-twitch-ads.sh    # the ad markers in a Twitch live playlist, for each player type
+sh test/measure-vimeo.sh         # the ways of getting Vimeo sources: the API and the player config
+sh test/measure-tiktok.sh        # the ways of getting a TikTok video: the app API and the web page
 sh test/twitch-live.sh 10        # the channels live right now, with their ad markers, add play to watch
 sh test/backtrace.sh "<url>"     # where clientVBML crashes on a query, in gdb
 sh pull.sh                       # updates reference, and reports YouTube client changes
@@ -140,7 +142,7 @@ sh resync.sh                     # lists our changes still to apply to the publi
 
 ## Adding a test
 
-Add a line to the backend's script. The label tells what is expected: `TRACK` needs sources and a title, `COVER` needs a cover, and anything else needs at least one entry.
+Add a line to the backend's script. The label tells what is expected: `TRACK` needs sources and a title, `COVER` needs a cover, `COVER NO MATCH` needs none, and anything else needs at least one entry.
 
 ```sh
 test "TRACK" "https://www.youtube.com/watch?v=aqz-KE-bpKQ"

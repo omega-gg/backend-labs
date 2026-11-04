@@ -40,7 +40,7 @@ Bash scripts in `test/`, in the style of `clientVBML/test`, documented in `manua
 - Everything we run to test goes through a script, so every number in `implementation.md` can be reproduced.
 - They run often, so they are quick: every backend in about a minute, because backends run in parallel. No retries.
 - Throttling is opt-in, with the `throttle` level and `PLAY_SECONDS`, for when we have doubts.
-- All 72 active `clientVBML/test` cases are reused.
+- All active `clientVBML/test` cases are reused, except those of Last.fm, which is removed.
 - They also run from GitHub CI, with a minimal YAML wrapper around `test/ci.sh`, which runs locally too. It has its own baseline since GitHub's servers can get different answers from sites. Playback stays local, because it needs a Sky-runtime build and a screen.
 
 Results compare with `test/baseline.tsv`: `REGRESSION` when a case that passed now fails or needs more requests, `KNOWN` when it failed in the baseline too.
@@ -81,7 +81,8 @@ Still open, each only for a measurable gain:
 - **Twitch:** video metadata moved to GQL. Still to do: compare usher parameters with yt-dlp and set `expiry`.
 - **SoundCloud:** the feed is fixed.
 - **TikTok:** to do later, with the web route and its engine changes, see `implementation.md`.
-- **Blocked:** Vimeo sources, Facebook sources and Last.fm pages, see `implementation.md`.
+- **Youtube Music:** replaces Last.fm, with tracks, albums and artists. Tracks play through `youtube`.
+- **Blocked:** Vimeo sources and Facebook sources, see `implementation.md`.
 
 ### Engine proposals (suggest only)
 

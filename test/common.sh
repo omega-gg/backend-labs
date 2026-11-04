@@ -394,6 +394,13 @@ test()
 
             details="broken metadata"
         fi;;
+    COVER\ NO\ MATCH*)
+        if has '^cover: .'; then
+
+            status="FAIL"
+
+            details="wrong cover"
+        fi;;
     COVER*)
         if ! has '^cover: .'; then
 

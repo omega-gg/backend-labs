@@ -17,11 +17,6 @@ failure	FEED	OK	4998
 failure	TRACK	OK	4728	
 failure	TRENDING	OK	4922	
 iptv	SEARCH TRACKS	OK	2524	3
-lastfm	COVER	FAIL	1192	1
-lastfm	FEED	FAIL	1090	1
-lastfm	RELATED	FAIL	869	1
-lastfm	SEARCH TRACKS	FAIL	799	1
-lastfm	TRACK	OK	2257	2
 odysee	TRACK	OK	2414	3
 odysee	TRACK video 1440	FAIL	360	
 opensubtitles	SEARCH SUBTITLES	OK	3873	1
@@ -90,3 +85,11 @@ youtube	TRACK LOCKED audio	OK	89
 youtube	TRACK LOCKED video 1080	OK	88	
 youtube	TRACK audio	OK	105	
 youtube	TRACK video 1080	OK	108	
+youtubemusic	ALBUM	OK	1035	1
+youtubemusic	ARTIST	OK	1180	2
+youtubemusic	ARTIST TOP SONGS	OK	732	1
+youtubemusic	COVER	OK	1025	1
+youtubemusic	COVER NO MATCH	OK	962	1
+youtubemusic	SEARCH ALBUMS	OK	1051	1
+youtubemusic	SEARCH ARTISTS	OK	958	1
+youtubemusic	SEARCH TRACKS	OK	1035	1
