@@ -26,4 +26,6 @@ test "SEARCH VIDEOS" "vbml:run?backend=twitch&method=search&label=videos&q=starc
 
 play "TRACK" "https://www.twitch.tv/videos/1171797190" 720
 
+play "TRACK LIVE" "https://www.twitch.tv/esl_sc2" 720
+
 finish

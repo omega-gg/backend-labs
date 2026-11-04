@@ -161,6 +161,12 @@ Found by reading the backends and yt-dlp, not yet measured.
 - **Vimeo:** 2 source requests on first play, then 1. Uses only the API `download` field, so videos without downloads have no sources. yt-dlp's `player.vimeo.com` route can need TLS impersonation, which scripts cannot do.
 - **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times.
 
+### Twitch live ads
+
+Twitch stitches ads into the live playlist, and they depend on the `playerType` of the token request. Measured 2026-11-04 with `sh test/measure-twitch-ads.sh`: `site` had ad markers on 5 of 6 channels, with 3 segments in the playlist. `embed`, `popout` and `frontpage` had none on all 6, with 15 segments and the same qualities.
+
+The backend uses `embed` since 1.0.32. `sh test/twitch-live.sh` got 0 markers on 9 live channels, and 5 of them played 15 s at 1.00x with no buffering, and `esl_sc2` played 60 s. This is a snapshot near the start of a stream, ad breaks later in a stream are not tested, and Twitch can change this at any time.
+
 ## Engine proposals
 
 Suggestions only.
