@@ -73,7 +73,7 @@ PLAY_SECONDS=60 sh test/youtube.sh play
 
 ```
 TRACK https://www.youtube.com/watch?v=aqz-KE-bpKQ
-[OK] 2701 ms, 4 requests (baseline 2842 ms, 4 requests)
+[OK] 602 ms, 3 requests (baseline 2089 ms, 3 requests)
 ```
 
 | Result | Meaning |

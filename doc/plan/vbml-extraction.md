@@ -95,7 +95,7 @@ Collected in `implementation.md`, and not implemented without approval:
 
 ## Critical files
 
-- `vbml/youtube.vbml`: `QUERY_SOURCE` (line 90), `QUERY_TRACK` (141), visitor branch (236), format loops (371 to 476), `expiry` (502), `EXTRACT_TRACK` (504)
+- `vbml/youtube.vbml`: `QUERY_SOURCE`, `QUERY_TRACK`, `EXTRACT_SOURCE`, `EXTRACT_TRACK`
 - `vbml/index.vbml`, `vbml/indexLite.vbml`, `vbml/dist/generateLite.sh`
 - Reference: `Sky/src/SkBackend/src/media/WBackendUniversal.cpp`, `WBackendIndex.cpp`, `VBML/doc/api.md`, `clientVBML/src/controllers/ControllerCore.cpp`, `Sky-runtime/run/sky-player.sky`
 - Sources of truth: NewPipe for VISIONOS request details, yt-dlp for the client landscape, PO token policy and the non-YouTube sites

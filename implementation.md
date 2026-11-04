@@ -60,7 +60,7 @@ clientVBML crashed this way (exit code 139) on failed queries. It now defers the
 
 ## State of the backends
 
-From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends unchanged from public `master` 984d9f4, with 10 s of playback. The cases come from `clientVBML/test`, and most date from 2025, so a failure can also mean a stale URL. Failures are not diagnosed yet.
+From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends close to public `master` 984d9f4, with 10 s of playback. The cases come from `clientVBML/test`, and most date from 2025, so a failure can also mean a stale URL. Failures are not diagnosed yet.
 
 | Backend | Queries passing | Failing | Streams and playback |
 | --- | --- | --- | --- |
@@ -111,14 +111,14 @@ VISIONOS responses have direct `url` fields with no `signatureCipher` and no `n`
 
 ### First play cost
 
-From one run of `sh test/measure-youtube.sh`, on `aqz-KE-bpKQ`, 2026-11-04, compressed size. To be confirmed through the engine.
+From one run of `sh test/measure-youtube.sh`, on `aqz-KE-bpKQ`, 2026-11-04, compressed size.
 
 A track costs 3 requests on first play: `sw.js_data` for `visitorData` (the watch page until 1.0.130), a WEB player request for the metadata (the watch page until 1.0.132), and the VISIONOS player request. In `sh test/youtube.sh` that took tracks from about 2.1 to 2.8 s, to 1.2 to 1.9 s with `sw.js_data`, and to about 0.6 s with the metadata request, in one run each. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
 
-| Step | Today | Candidate |
+| Step | Before | Now |
 | --- | --- | --- |
 | `visitorData` | watch page, 319 KB, 0.69 s | `sw.js_data`, 1.5 KB, 0.13 s |
-| VISIONOS player POST | 13.4 KB, 0.17 s | `$fields=playabilityStatus,streamingData,videoDetails`, 6.9 KB, 0.17 s |
+| VISIONOS player POST | 13.4 KB, 0.17 s | Same. `$fields=playabilityStatus,streamingData,videoDetails` would make it 6.9 KB |
 | Track metadata | watch page, 319 KB, plus a 1 s spacing delay | WEB player with `$fields`, 571 bytes, 0.18 s |
 
 - **`visitorData` is required:** VISIONOS returns `LOGIN_REQUIRED` without it.
@@ -165,8 +165,6 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 - The comment above the `UNPLAYABLE` fallback mentions `ANDROID_VR`, and the code uses ANDROID.
 
 ## Other sites
-
-Found by reading the backends and yt-dlp, not yet measured.
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
 - **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens.
