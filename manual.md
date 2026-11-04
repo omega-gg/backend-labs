@@ -134,6 +134,7 @@ sh test/measure-twitch.sh        # the Twitch video page against its GraphQL API
 sh test/measure-twitch-ads.sh    # the ad markers in a Twitch live playlist, for each player type
 sh test/measure-vimeo.sh         # the ways of getting Vimeo sources: the API and the player config
 sh test/measure-tiktok.sh        # the ways of getting a TikTok video: the app API and the web page
+sh test/measure-odysee.sh        # the sources of an Odysee video, with and without a referer
 sh test/twitch-live.sh 10        # the channels live right now, with their ad markers, add play to watch
 sh test/backtrace.sh "<url>"     # where clientVBML crashes on a query, in gdb
 sh pull.sh                       # updates reference, and reports YouTube client changes

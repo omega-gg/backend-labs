@@ -74,7 +74,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | dailymotion | 5/5 | | HLS valid. Plays at 1.01x with no buffering |
 | twitter | 1/1 | | Stream valid, title and cover only |
 | iptv | 1/1 | | |
-| odysee | 1/1 | | Stream returns HTTP 401 to curl, it may need a header |
+| odysee | 3/3 | | Streams valid. Very recent uploads can have no source yet |
 | soundcloud | 6/6 | | Streams valid |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
 | facebook | 1/3 | `TRACK` no sources, `RELATED` | See below |
@@ -168,7 +168,8 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 ## Other sites
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
-- **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens.
+- **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens: its app client can't fetch new ones. It required a login in 2025 and removed its `ios` and `macos` clients in 2026, so this keeps getting tighter.
+- **Odysee:** a video has HLS, its file, or neither for now. Recent uploads answer 404 `transcoding is in progress` for HLS and 401 for the file. A referer doesn't clear that: the file then answers 429 `Try again later`, which still held after 45 s on one video. A file in the CDN's cache plays without one, so a video can work after being refused. The file can be refused when HLS works, so since 1.0.10 it's only a fallback, at `v6/streams/<id>/<hash6>.mp4`, the URL of the API's `get`. The old `api/v3/streams/free` URL was refused where that one works. See `sh test/measure-odysee.sh`.
 - **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times. Channels use GQL too since 1.0.33: their page lists clips as `VideoObject`, so the backend took any channel with clips as live, with the clip description in the title and a broken feed.
 
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.

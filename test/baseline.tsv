@@ -17,8 +17,9 @@ failure	FEED	OK	4998
 failure	TRACK	OK	4728	
 failure	TRENDING	OK	4922	
 iptv	SEARCH TRACKS	OK	2524	3
-odysee	TRACK	OK	2414	3
-odysee	TRACK video 1440	FAIL	360	
+odysee	TRACK	OK	1004	3
+odysee	TRACK FILE	OK	958	3
+odysee	TRACK HLS	OK	948	3
 opensubtitles	SEARCH SUBTITLES	OK	3873	1
 peertube	FEED	OK	681	1
 peertube	RELATED	OK	968	2
