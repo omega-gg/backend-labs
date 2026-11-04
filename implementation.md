@@ -81,7 +81,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | opensubtitles | 0/1 | `SEARCH SUBTITLES`, no entries | |
 | vox | 0/7 | Connection times out | |
 
-Two kinds of noise to know about when reading a run. `twitch TRACK` varies in its request count, probably because its backend retries on an empty channel page. And during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
+One kind of noise to know about when reading a run: during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
 
 ### On GitHub's servers
 
@@ -90,7 +90,7 @@ First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the te
 - **youtube:** all 7 `TRACK` cases have no sources in both runs, while feeds, search and related pass. YouTube refuses the player request from GitHub's servers: `sh test/ci.sh measure` from the Actions tab gets `LOGIN_REQUIRED`, "Sign in to confirm you're not a bot", while the watch page still works. So YouTube sources and playback can only be tested from a home connection.
 
   The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
-- **twitch:** it varies between runs. `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. `TRACK` once took 14 requests with no title, probably the `reload` limit of 10 on an empty page.
+- **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known.
 - **vox:** it times out there too, so this is not specific to one network.
 
 ## YouTube
@@ -159,7 +159,7 @@ Found by reading the backends and yt-dlp, not yet measured.
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
 - **Vimeo:** 2 source requests on first play, then 1. Uses only the API `download` field, so videos without downloads have no sources. yt-dlp's `player.vimeo.com` route can need TLS impersonation, which scripts cannot do.
-- **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. The channel page sometimes returns empty and forces `reload`.
+- **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times.
 
 ## Engine proposals
 

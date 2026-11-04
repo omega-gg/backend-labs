@@ -296,7 +296,7 @@ stream()
 
     case "$2" in
     *m3u8*)
-        lines=$(curl -sL --max-time 10 "$2" | grep -c '#EXT')
+        lines=$(curl -sL --ssl-no-revoke --max-time 10 "$2" | grep -c '#EXT')
 
         if [ "$lines" = "0" ]; then
 
@@ -317,7 +317,7 @@ stream()
         last=1048575
     fi
 
-    set -- "$1" "$2" $(curl -sL --max-time 60 -r "0-$last" -o /dev/null \
+    set -- "$1" "$2" $(curl -sL --ssl-no-revoke --max-time 60 -r "0-$last" -o /dev/null \
                        -w '%{http_code} %{speed_download} %{time_starttransfer}' "$2")
 
     speed=$(awk -v s="$4" 'BEGIN { printf "%d", s / 1000 }')

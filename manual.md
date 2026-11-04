@@ -129,6 +129,8 @@ cut -f1-5 all.tsv | sort > test/baseline-ci.tsv
 sh test/lint.sh                  # checks the versions in both indexes, without any network
 sh test/failure.sh               # a failed request has to exit cleanly, without any network
 sh test/measure-youtube.sh       # what each YouTube request costs, and how streams are throttled
+sh test/measure-twitch.sh        # the Twitch video page against its GraphQL API
+sh test/measure-twitch-ads.sh    # the ad markers in a Twitch live playlist, for each player type
 sh test/backtrace.sh "<url>"     # where clientVBML crashes on a query, in gdb
 sh pull.sh                       # updates reference, and reports YouTube client changes
 sh resync.sh                     # lists our changes still to apply to the public backend, see resync.md

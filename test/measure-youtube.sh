@@ -31,14 +31,14 @@ post()
 
     shift 2
 
-    curl -s --compressed -X POST "$player$parameters" -H "User-Agent: $agent" \
+    curl -s --ssl-no-revoke --compressed -X POST "$player$parameters" -H "User-Agent: $agent" \
          -H "Content-Type: application/json" -d "$data" "$@"
 }
 
 # Prints the rate of a download compared to the playback. 1: url, 2: seconds, 3: range or empty.
 rate()
 {
-    speed=$(curl -sL --max-time "$2" ${3:+-r "$3"} -o /dev/null -w '%{speed_download}' "$1" || true)
+    speed=$(curl -sL --ssl-no-revoke --max-time "$2" ${3:+-r "$3"} -o /dev/null -w '%{speed_download}' "$1" || true)
 
     awk -v s="$speed" -v n="$need" 'BEGIN { printf "%d kB/s, %.1fx\n", s / 1000, s / n }'
 }
@@ -48,12 +48,12 @@ rate()
 #--------------------------------------------------------------------------------------------------
 
 printf 'watch page: '
-curl -s --compressed -o /dev/null -w "$fields" "https://www.youtube.com/watch?v=$id"
+curl -s --ssl-no-revoke --compressed -o /dev/null -w "$fields" "https://www.youtube.com/watch?v=$id"
 
 printf 'sw.js_data: '
-curl -s --compressed -o /dev/null -w "$fields" "https://www.youtube.com/sw.js_data"
+curl -s --ssl-no-revoke --compressed -o /dev/null -w "$fields" "https://www.youtube.com/sw.js_data"
 
-visitor=$(curl -s --compressed "https://www.youtube.com/sw.js_data" | grep -o '"Cg[^"]*"' | head -1 | tr -d '"')
+visitor=$(curl -s --ssl-no-revoke --compressed "https://www.youtube.com/sw.js_data" | grep -o '"Cg[^"]*"' | head -1 | tr -d '"')
 
 client='"clientName": "VISIONOS", "clientVersion": "1.04", "deviceMake": "Apple",
         "deviceModel": "RealityDevice17,1", "osName": "visionOS", "osVersion": "26.6.0.23O770",
@@ -86,7 +86,7 @@ android="{\"context\": {\"client\": {\"clientName\": \"ANDROID\", \"clientVersio
           \"contentCheckOk\": true, \"racyCheckOk\": true}"
 
 printf 'android status: '
-curl -s --compressed -X POST "$player" -H "Content-Type: application/json" -d "$android" \
+curl -s --ssl-no-revoke --compressed -X POST "$player" -H "Content-Type: application/json" -d "$android" \
      -H "User-Agent: com.google.android.youtube/20.10.38 (Linux; U; Android 11)" \
      | grep -o '"status":"[A-Z_]*"\|"itag":18,' | head -2 | tr '\n' ' '
 echo ""
