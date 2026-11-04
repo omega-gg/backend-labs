@@ -47,10 +47,10 @@ git -C ../backend diff
 
 Read the diff. It should only hold the changes `resync.sh` listed.
 
-**6. Commit and push.** One commit per change is the easiest to revert, for example `youtube: Fix the expiry duration`.
+**6. Commit and push.** One commit per change is the easiest to revert, for example `youtube: Fix the expiry duration`. Add the files by name, a checkout can hold files of yours like `.qtcreator`.
 
 ```sh
-git -C ../backend add -A
+git -C ../backend add youtube.vbml index.vbml indexLite.vbml
 git -C ../backend commit -m "youtube: ..."
 git -C ../backend push
 ```
