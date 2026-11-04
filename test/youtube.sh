@@ -43,4 +43,6 @@ play "TRACK 4K" "https://www.youtube.com/watch?v=aqz-KE-bpKQ" 2160
 
 play "TRACK 1080" "https://www.youtube.com/watch?v=qWbhCFDdhzM" 1080
 
+play "TRACK LIVE" "https://www.youtube.com/watch?v=UedTcufyrHc" 720
+
 finish

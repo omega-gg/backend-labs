@@ -115,7 +115,7 @@ VISIONOS responses have direct `url` fields with no `signatureCipher` and no `n`
 
 From one run of `sh test/measure-youtube.sh`, on `aqz-KE-bpKQ`, 2026-11-04, compressed size. To be confirmed through the engine.
 
-A track costs 3 requests on first play: `sw.js_data` for `visitorData` (the watch page until 1.0.130), a watch page for the metadata, and the player request. In `sh test/youtube.sh` that took tracks from about 2.1 to 2.8 s down to 1.2 to 1.9 s, in one run. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
+A track costs 3 requests on first play: `sw.js_data` for `visitorData` (the watch page until 1.0.130), a WEB player request for the metadata (the watch page until 1.0.132), and the VISIONOS player request. In `sh test/youtube.sh` that took tracks from about 2.1 to 2.8 s, to 1.2 to 1.9 s with `sw.js_data`, and to about 0.6 s with the metadata request, in one run each. Builds with `SK_NO_TORRENT`, which are clientVBML and the iOS apps, used to send the metadata request twice because of a bug in `WPlaylistPrivate::applyTrack`, so every backend's track took one more request.
 
 | Step | Today | Candidate |
 | --- | --- | --- |
@@ -148,9 +148,22 @@ Open-ended requests are paced at about 2x playback rate, and 10 MB ranges are no
 
 This does not hurt on the test machine: `sh test/youtube.sh play` gives 1.00x with no buffering at 4K60 and 1080p60. Machines without AV1 hardware decoding are not tested.
 
-### Known issues in youtube.vbml 1.0.131
+### Metadata from the player request
 
-- Live in default mode refetches with ANDROID, costing 3 to 4 requests.
+The WEB client answers `UNPLAYABLE`, and still returns the title, author, channel, duration, date, live flag and thumbnails, in about 1.2 KB. Three things to know:
+
+- The thumbnails depend on the user agent: a Chrome one gets `.webp`, the Safari one gets `.jpg`.
+- The largest thumbnail can have a `?sqp=` parameter that gives a smaller image, so the backend removes it. 6 of 7 test covers stay byte-identical, the 7th is 68.5 KB against 69.7 KB.
+- A live video now gets `type: live`. It got `track` from the watch page, because the check for `hlsManifestUrl` no longer matched there.
+
+On a network YouTube flags the request is refused, and there is no metadata, which is also what the watch page gives since 1.0.131.
+
+### Live
+
+Live sources come from a second request with the ANDROID client. `sh test/measure-youtube-live.sh` shows why: the VISIONOS manifest is `demuxed/1`, with video only and separate audio tracks, and the ANDROID one has both together. Skipping that request would save about 0.15 s, for parsing and syncing separate audio, so the backend keeps it. A live video plays 60 s at 1.00x with no buffering.
+
+### Known issues in youtube.vbml 1.0.132
+
 - The comment above the `UNPLAYABLE` fallback mentions `ANDROID_VR`, and the code uses ANDROID.
 
 ## Other sites

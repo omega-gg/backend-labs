@@ -92,7 +92,7 @@ curl -s --ssl-no-revoke --compressed -X POST "$player" -H "Content-Type: applica
 echo ""
 
 printf 'metadata with fields: '
-post '&$fields=playabilityStatus.status,microformat.playerMicroformatRenderer(uploadDate,publishDate),videoDetails(videoId,title,author,channelId,lengthSeconds,isLiveContent,thumbnail)' \
+post '&$fields=playabilityStatus.status,microformat.playerMicroformatRenderer.uploadDate,videoDetails(title,author,channelId,lengthSeconds,isLive,thumbnail)' \
      "$web" -o /dev/null -w "$fields"
 
 #--------------------------------------------------------------------------------------------------
