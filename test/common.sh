@@ -377,6 +377,13 @@ test()
             status="FAIL"
 
             details="no title"
+
+        # NOTE: A backend can pick up raw JSON from a page it did not expect.
+        elif has '^\(title\|author\): "[^"]*":'; then
+
+            status="FAIL"
+
+            details="broken metadata"
         fi;;
     COVER*)
         if ! has '^cover: .'; then

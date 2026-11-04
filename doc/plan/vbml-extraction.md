@@ -55,7 +55,7 @@ The repository layout, `manual.md`, the test suite, `baseline.tsv` and the state
 Still to do:
 
 - Refresh the cases that fail only because their URL is stale, and note each one.
-- Find out why YouTube tracks have no sources on GitHub's servers and why `twitch TRACK LIVE` crashed there, then record `test/baseline-ci.tsv`.
+- Find out why `twitch TRACK LIVE` crashed once on GitHub's servers, if it happens again. It now prints the end of its log.
 
 ### M2. YouTube, one change at a time
 
@@ -64,7 +64,7 @@ Still to do:
 3. **Visitor data.** Replace the first-play watch page with `sw.js_data`, keeping the watch page as fallback. Read the value without JS if possible, because `JS_CALL` builds a new engine per call. Check whether ANDROID still needs STS, and drop it if not.
 4. **Client strings.** Move VISIONOS to 1.04. Test ANDROID in safe mode (Chromecast uses it), now 20.10.38 against yt-dlp's 21.26.364, where yt-dlp notes a PO token requirement except for itag 18.
 5. **`$fields` on the source POST.** Confirm `$` survives VBML and URL handling. Add a `videoDetails.videoId` check, because YouTube can substitute another video when rate limiting.
-6. **Track metadata.** Replace the watch page with a WEB player `$fields` request. Compare title, author, cover, duration, date and live detection on the test videos. Remove the 1 s delay only if rate limit testing allows it.
+6. **Track metadata.** Replace the watch page with a WEB player `$fields` request. Compare title, author, cover, duration, date and live detection on the test videos. Remove the 1 s delay only if rate limit testing allows it. On a network YouTube flags, the player request is refused while the watch page still answers, so keep a fallback, and don't return wrong metadata from a page without `videoDetails`.
 7. **Format selection.** AV1 plays smoothly on the test machine, so this only matters for machines without AV1 hardware decoding and for VLC. Change the selection only if the numbers justify it, and keep the mp4 over webm rule that protects VLC.
 8. **Live.** Use `hlsManifestUrl` from VISIONOS directly, tested well past 30 s, to remove the ANDROID refetch.
 9. **Cleanup.** Merge duplicated client bodies where possible to stay under the statement limit, and fix the stale `ANDROID_VR` comment.
