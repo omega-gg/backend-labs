@@ -87,4 +87,33 @@ printf 'video, with the cookies: '
 curl -s --ssl-no-revoke -A "$agent" -e "$url" -b "$cookies" -r 0-1048575 -o /dev/null \
      -w "$fields" "$video"
 
+# NOTE: This is what the player would need, it uses the same http layer as ffprobe.
+if command -v ffprobe > /dev/null; then
+
+    list=$(grep -v '^# ' "$cookies" | grep tiktok | sed 's/^#HttpOnly_//' \
+           | awk -F'\t' '{ printf "%s=%s; path=%s; domain=%s\n", $6, $7, $3, $1 }')
+
+    probe()
+    {
+        ffprobe -v error -show_entries stream=codec_name -of csv=p=0 -user_agent "$agent" \
+                "$@" "$video" < /dev/null 2>&1 | tr -d '\r' | sed 's/.*: //' | tr '\n' ' '
+
+        echo ""
+    }
+
+    printf 'ffprobe, alone: '
+    probe
+
+    printf 'ffprobe, with the cookies: '
+    probe -cookies "$list"
+
+    header=$(grep -v '^# ' "$cookies" | grep tiktok \
+             | awk -F'\t' '{ printf "%s=%s; ", $6, $7 }')
+
+    printf 'ffprobe, with the same headers as curl: '
+    probe -headers "Cookie: $header
+Referer: $url
+"
+fi
+
 rm -f "$cookies"

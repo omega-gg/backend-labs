@@ -175,7 +175,37 @@ Found by reading the backends and yt-dlp, not yet measured.
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
 - **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".
 - **Last.fm:** every page answers a 3 KB challenge page, with both user agents tried. `TRACK` passes with the title `-`, so that result is not real.
-- **TikTok:** with `sh test/measure-tiktok.sh`, the app API answered HTTP 429 3 times out of 5. When it answers, it can return another video: the backend got the author `richyarvizu` and 15 s for a 24 s video from `@tiktok`. The web page has the metadata and `playAddr` in 406 KB, and that stream answers 403 without the cookies of the page, which VBML can't pass on to the player.
+- **TikTok:** unreliable for now, see below.
+
+### TikTok
+
+The backend uses the app API, and it fails often. We left it there for now, because the proper fix needs engine changes. All of this comes from `sh test/measure-tiktok.sh`, 2026-11-04.
+
+| Route | Result |
+|---|---|
+| App API (`api16`), what the backend uses | HTTP 429 on 3 of 5 tries. It can also answer a generic feed of 300 to 600 KB without the requested video |
+| Web page | Metadata and `playAddr` in 406 KB, with the plain engine user agent |
+| `oembed` | 543 bytes, title and author, no stream |
+| `player/v1`, `embed/v2` | No `playAddr` |
+
+A stream from the web page depends on how it's requested:
+
+| Request | Result |
+|---|---|
+| Alone, or with a `Referer` | HTTP 403 |
+| ffprobe with `-cookies` | HTTP 403 |
+| curl with the page's cookies | HTTP 206 |
+| ffprobe with `-headers` holding `Cookie` and `Referer` | Opens, `h264 aac` |
+
+The backend plays the first video of whatever comes back, so a generic feed plays the wrong video. Checking the id stops that, but TikTok then fails most of the time: sources came through on 2 of 8 tries. That isn't a real fix, so the backend stays as it is until the web route is done.
+
+The proper fix is the web route:
+
+1. In the engine, let scripts read the cookies a response sets. Scripts only see `data` today, and `cookies` only turns on the engine's own jar.
+2. In the engine, let `WFfmpegPlayer` apply request headers from `options`. They already reach its `setSource`, which ignores them, and `WBackendVlc` would need its own check.
+3. In the backend, read sources and metadata from the web page, and set a short `expiry`.
+
+Open questions: how long the cookies last, whether they're tied to the IP, how seeking behaves, and whether some users get a challenge page, since yt-dlp has code to solve one. It also costs a 406 KB page per play.
 
 ### Twitch live ads
 
@@ -191,4 +221,4 @@ Suggestions only.
 - Allow parallel requests in source flows, to race clients.
 - Expose response status and headers to scripts.
 - Expose download speed on the player, for playback tests.
-- Pass cookies from a query on to the player, for TikTok web streams.
+- For TikTok web streams: let scripts read the cookies a response sets, and let `WFfmpegPlayer` apply request headers from `options`. See the TikTok section.

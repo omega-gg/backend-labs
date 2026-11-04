@@ -80,7 +80,9 @@ Still open, each only for a measurable gain:
 - **Dailymotion:** the `"380"` key falls to default quality, no `expiry` is set while the URLs may expire, and check whether the second m3u8 fetch is needed.
 - **Vimeo:** only the `download` field is used, so videos without downloads have no sources. Evaluate `player.vimeo.com` config, which yt-dlp says can require TLS impersonation, a possible engine limit.
 - **Twitch:** video metadata moved to GQL. Still to do: compare usher parameters with yt-dlp and set `expiry`.
-- **Others:** ordered by the M1 results and player usage, decided with the user after M3.
+- **SoundCloud:** the feed is fixed.
+- **TikTok:** to do later, with the web route and its engine changes, see `implementation.md`.
+- **Blocked:** Vimeo sources, Facebook sources and Last.fm pages, see `implementation.md`.
 
 ### Engine proposals (suggest only)
 
