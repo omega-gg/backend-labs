@@ -173,6 +173,7 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
 - **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".
 - **Last.fm:** every page answers a 3 KB challenge page, with both user agents tried. `TRACK` passes with the title `-`, so that result is not real.
+- **IPTV:** iptv-org moved the logos out of `channels.json` to `logos.json`, 846 KB, so a search takes a third request since 1.0.10. About 1.4% of the logos are SVG, which may not display.
 - **TikTok:** unreliable for now, see below.
 
 ### TikTok
