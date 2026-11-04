@@ -56,6 +56,7 @@ clientVBML crashed this way (exit code 139) on failed queries. It now defers the
 - qmake replaces the word `debug` in `DESTDIR` under `debug_and_release`, so a custom output folder can't have that word in its name.
 - A VPN or a filtering network makes blocked sites look like backend failures. All baselines have to come from an unfiltered network.
 - The first launch of a freshly built clientVBML is slower, 9.6 s against 4.5 s for the same query, and maybe security software scanning it. After a rebuild, the first run can time out on a few cases and is worth rerunning.
+- Not explained yet: on Twitch live channels, clientVBML sometimes leaves the track out of its output while the sources come through, so `TRACK LIVE` can pass on the title of the hub playlist.
 - Not explained yet: `sky` logs `ControllerCore::loadData: Failed to load .../bin/bin/skz/run/mport.sky` when running a script that starts with `import`. It looks like `import` gets misread, and playback still works.
 
 ## State of the backends
@@ -67,7 +68,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | youtube | 13/13 | | Streams valid. 4K60 and 1080p60 play at 1.00x with no buffering |
 | youtubemusic | 8/8 | | Metadata only, tracks play through `youtube` |
 | tmdb | 10/10 | | Metadata only |
-| twitch | 7/7 | | HLS valid. Plays at 1.00x with no buffering |
+| twitch | 8/8 | | HLS valid. Plays at 1.00x with no buffering |
 | peertube | 6/6 | | Streams valid. Blocked on some filtering networks |
 | duckduckgo | 6/6 | | `SEARCH SITE` fails now and then, it may be rate limiting |
 | dailymotion | 5/5 | | HLS valid. Plays at 1.01x with no buffering |
@@ -168,7 +169,7 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
 - **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens.
-- **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times.
+- **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times. Channels use GQL too since 1.0.33: their page lists clips as `VideoObject`, so the backend took any channel with clips as live, with the clip description in the title and a broken feed.
 
 - **SoundCloud:** the user `uri` now holds `soundcloud%3Ausers%3A<id>`, and the API answers an error for that form. The backend removes the prefix since 1.0.12.
 - **Facebook:** `dash_mpd_debug.mpd` answers HTTP 500 on all the videos tried, including those of the yt-dlp tests, and the page of a video has none of the source fields yt-dlp looks for without a login. When the page is generic, the backend also returns wrong metadata, like the title "Discover Popular Videos".

@@ -14,6 +14,8 @@ test "TRACK" "https://www.twitch.tv/videos/1171797190"
 
 test "TRACK LIVE" "https://www.twitch.tv/esl_sc2"
 
+test_info "TRACK OFFLINE" "https://www.twitch.tv/twitch"
+
 test "RELATED" "vbml:run?backend=twitch&method=related&label=tracks&q=esl_sc2"
 
 test "PLAYLIST A" "https://www.twitch.tv/directory/all"

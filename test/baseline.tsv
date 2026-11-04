@@ -54,6 +54,7 @@ twitch	SEARCH VIDEOS	OK	1000	1
 twitch	TRACK	OK	1817	3
 twitch	TRACK LIVE	OK	1359	6
 twitch	TRACK LIVE video 1080	OK		
+twitch	TRACK OFFLINE	OK	3099	8
 twitch	TRACK video 1080	OK		
 twitter	TRACK	OK	1743	4
 twitter	TRACK video 720	OK	1109	
