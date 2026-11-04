@@ -153,7 +153,8 @@ QUERY_TRACK: |
     SET url (APPEND "https://www.youtube.com/youtubei/v1/player?prettyPrint=false&$fields=" \
                     "microformat.playerMicroformatRenderer.uploadDate," \
                     "videoDetails(title,author,channelId,lengthSeconds,isLive,thumbnail)")
-    SET header (APPEND '"Content-Type" "application/json"'                        '"User-Agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"')
+    SET header (APPEND '"Content-Type" "application/json"' \
+                       '"User-Agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"')
     SET body (APPEND '{"context": {"client": {"clientName": "WEB",' \
                      '"clientVersion": "2.20261019.01.00", "hl": "en"}}, "videoId": "' string '",' \
                      '"contentCheckOk": true, "racyCheckOk": true}')
