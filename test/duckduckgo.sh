@@ -22,7 +22,15 @@ test "SEARCH SITE" \
 sleep 5
 
 test "SEARCH TRACKS A" "vbml:run?backend=duckduckgo&method=search&label=tracks&q=chillwave"
+
+# NOTE DuckDuckGo: We wait to avoid being blocked.
+sleep 5
+
 test "SEARCH TRACKS B" "vbml:run?backend=duckduckgo&method=search&label=tracks&q=disney+"
+
+# NOTE DuckDuckGo: We wait to avoid being blocked.
+sleep 5
+
 test "SEARCH TRACKS C" "vbml:run?backend=duckduckgo&method=search&label=tracks&q=chillwave !"
 
 # NOTE DuckDuckGo: We wait to avoid being blocked.
