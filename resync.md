@@ -47,7 +47,7 @@ git -C ../backend diff
 
 Read the diff. It should only hold the changes `resync.sh` listed.
 
-When a backend is added or removed, a removed file also needs `git -C ../backend rm`. MotionBox, MotionMonkey, Sky, Sky-runtime and tevolution embed each backend file through their `dist/qrc/*.qrc`, and `clientVBML/test` has a script per backend, so update those in the same step. Otherwise a deploy build can fail on a missing file. Copy a new cover as well, because players load it from the public repository.
+When a backend is added or removed, a removed file also needs `git -C ../backend rm`. `clientVBML/test` has a script per backend, so update it in the same step. Copy a new cover as well, because players load it from the public repository.
 
 **6. Commit and push.** One commit per change is the easiest to revert, for example `youtube: Fix the expiry duration`. Add the files by name, a checkout can hold files of yours like `.qtcreator`.
 
