@@ -233,22 +233,14 @@ EXTRACT_SOURCE: |
             HASH_SET medias quality source
         END
     ELIF (EQUAL id 4) # Visitor
-    OR (EQUAL id 6)
-        IF (CONTAIN data ',"Cg')
-            LIST_APPEND global (APPEND "Cg" (SLICE_IN data ',"Cg' '"'))
-        ELIF (CONTAIN data '"VISITOR_DATA":"')
+        # NOTE: The watch page is our fallback, so it's the only one that can't try again.
+        IF (CONTAIN data '"VISITOR_DATA":"')
             LIST_APPEND global (SLICE_IN data '"VISITOR_DATA":"' '"')
-        ELIF (EQUAL id 6)
-            RETURN
+            HASH_SET next "id" -1
         ELSE
-            # NOTE: The sw.js_data format changed, so we fallback to the watch page.
-            HASH_SET next "url" (APPEND "https://www.youtube.com/watch?v=" queryData)
-            HASH_SET next "id" 6
-            HASH_SET next "queryData" queryData
-            RETURN
+            LIST_APPEND global (APPEND "Cg" (SLICE_IN data ',"Cg' '"'))
         FI
         HASH_SET next "url" "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
-        HASH_SET next "id" -1
         IF (EQUAL mode "safe")
             HASH_SET next "header" (APPEND '"Content-Type" "application/json"' \
                                            '"User-Agent" "com.google.android.youtube/20.10.38 (Linux; U; Android 11)"' \
@@ -283,7 +275,7 @@ EXTRACT_SOURCE: |
                 RETURN
             FI
             SET global ""
-            HASH_SET next "url" "https://www.youtube.com/sw.js_data"
+            HASH_SET next "url" (APPEND "https://www.youtube.com/watch?v=" queryData)
             HASH_SET next "id" 4
             HASH_SET next "queryData" queryData
             RETURN

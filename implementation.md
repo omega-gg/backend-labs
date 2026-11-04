@@ -124,7 +124,7 @@ A track costs 3 requests on first play: `sw.js_data` for `visitorData` (the watc
 | Track metadata | watch page, 319 KB, plus a 1 s spacing delay | WEB player with `$fields`, 571 bytes, 0.18 s |
 
 - **`visitorData` is required:** VISIONOS returns `LOGIN_REQUIRED` without it.
-- **Fallback:** if `sw.js_data` has no value, the backend falls back to the watch page. Tested by pointing it at another URL: it costs 1 more request, and metadata and sources stay correct.
+- **Fallback:** if the value from `sw.js_data` doesn't work, the player answers `LOGIN_REQUIRED` and the backend gets a new one from the watch page. Tested by pointing it at another URL: it costs 2 more requests, and metadata and sources stay correct.
 - **ANDROID:** it also works without `signatureTimestamp`, in `sh test/measure-youtube.sh`. clientVBML can't reach safe mode, so the backend path itself is not tested.
 - **Not needed for VISIONOS:** `signatureTimestamp` and `html5Preference`, the script sends neither.
 - **In `sw.js_data`:** the value is at `[0][2][0][0][13]`, after stripping the `)]}'` prefix.
