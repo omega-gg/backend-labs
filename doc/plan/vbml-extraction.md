@@ -84,6 +84,7 @@ Still open, each only for a measurable gain:
 - **TikTok:** to do later, with the web route and its engine changes, see `implementation.md`.
 - **Youtube Music:** replaces Last.fm, with tracks, albums and artists. Tracks play through `youtube`.
 - **Facebook:** sources fixed in 1.0.11, from the embed page, and related titles in 1.0.12.
+- **Internet Archive:** new in index 1.0.304, with tracks and albums. Still open: a feed for a creator or a collection, which needs paging on large ones, and a playlist for video items with several videos.
 - **Blocked:** Vimeo sources, see `implementation.md`.
 
 ### Engine proposals (suggest only)

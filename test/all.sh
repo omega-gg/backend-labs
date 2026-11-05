@@ -42,7 +42,7 @@ export TEST_RESULTS
 : > "$TEST_RESULTS"
 
 scripts="failure duckduckgo youtube youtubemusic dailymotion vimeo twitter facebook odysee peertube iptv
-         twitch tiktok soundcloud tmdb opensubtitles"
+         twitch tiktok soundcloud archive tmdb opensubtitles"
 
 # NOTE: The backends run at the same time, so this takes as long as the slowest one. Playback runs
 #       one by one, so that the windows don't compete for the machine.
