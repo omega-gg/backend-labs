@@ -12,6 +12,8 @@ begin tiktok "$@"
 
 test "TRACK" "https://www.tiktok.com/@tiktok/video/7106594312292453675"
 
+test "FEED" "https://www.tiktok.com/@tiktok"
+
 play "TRACK" "https://www.tiktok.com/@tiktok/video/7106594312292453675" 720
 
 finish

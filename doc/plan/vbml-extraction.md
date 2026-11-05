@@ -81,7 +81,7 @@ Still open, each only for a measurable gain:
 - **Odysee:** sources fixed in 1.0.10. Very recent uploads can still have none.
 - **Twitch:** video and channel metadata moved to GQL. Still to do: compare usher parameters with yt-dlp and set `expiry`.
 - **SoundCloud:** the feed is fixed.
-- **TikTok:** web route in 1.0.10, it requires the Sky changes in `implementation.md`, so it goes public after them.
+- **TikTok:** web route and channels in 1.0.11, it requires the Sky changes in `implementation.md`, so it goes public after them. A channel stops at 15 videos for now.
 - **Youtube Music:** replaces Last.fm, with tracks, albums and artists. Tracks play through `youtube`.
 - **Facebook:** sources fixed in 1.0.11, from the embed page, and related titles in 1.0.12.
 - **Internet Archive:** new in index 1.0.304, with tracks and albums. It has creator feeds. Still open: a feed for a collection, which needs paging on large ones, and a playlist for video items with several videos.
