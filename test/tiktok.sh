@@ -14,6 +14,9 @@ test "TRACK" "https://www.tiktok.com/@tiktok/video/7106594312292453675"
 
 test "FEED" "https://www.tiktok.com/@tiktok"
 
+# NOTE: Videos with hashtags, each hashtag comes with its own 'id' and 'desc'.
+test "FEED HASHTAGS" "https://www.tiktok.com/@ciaoambino"
+
 play "TRACK" "https://www.tiktok.com/@tiktok/video/7106594312292453675" 720
 
 finish

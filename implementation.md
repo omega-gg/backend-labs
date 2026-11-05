@@ -79,7 +79,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | archive | 9/9 | | Streams valid, H.264 or MP3. A track and an album row play at 1.00x with no buffering |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
 | facebook | 3/3 | | Streams valid, up to 1080p on the videos tried |
-| tiktok | 2/2 | | Plays at 1.02x with a Sky that sends its headers. See below |
+| tiktok | 3/3 | | Plays at 1.02x with a Sky that sends its headers. See below |
 | opensubtitles | 1/1 | | |
 
 One kind of noise to know about when reading a run: during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
@@ -210,7 +210,7 @@ What it takes in Sky:
 1. A query with `cookies` gets the cookies of its response, and `EXTRACT_SOURCE` reads them as `cookie`. Only sources have it.
 2. `WFfmpegPlayer` sends the `header=<name>: <value>` entries of `options` as FFmpeg's `headers`. Anything else in `options` is still for VLC.
 
-A channel takes 2 requests: its page gives the name, the avatar and `secUid`, then `api/creator/item_list` gives 15 videos, with no cookies or signature. It refuses a higher `count`, and the next page would be `cursor` at the `createTime` of the last video, in milliseconds. A feed stays at 15 for now.
+A channel takes 2 requests: its page gives the name, the avatar and `secUid`, then `api/creator/item_list` gives 15 videos, with no cookies or signature. It refuses a higher `count`, and the next page would be `cursor` at the `createTime` of the last video, in milliseconds. A feed stays at 15 for now. The keys of a row are sorted, so its author and hashtags come first with their own `id` and `desc`: the ones of the video come after `createTime`.
 
 An older Sky gets no cookies and doesn't send the headers, so its stream answers 403. So does the VLC engine for now, which has not been checked with these options.
 
