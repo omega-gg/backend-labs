@@ -25,6 +25,8 @@ test "ALBUM COVER" "https://archive.org/download/mdsw_20240622"
 # NOTE: An album of 104 files, each of them in several MP3 qualities.
 test "ALBUM SEVERAL" "https://archive.org/download/OTRR_Box_13_Singles"
 
+test "FEED" "https://archive.org/search?query=creator%3A%22Buster%20Keaton%22"
+
 test "SEARCH TRACKS" "vbml:run?backend=archive&method=search&label=tracks&q=buster keaton"
 
 test "SEARCH ALBUMS" "vbml:run?backend=archive&method=search&label=albums&q=miles davis"
