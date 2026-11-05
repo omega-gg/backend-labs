@@ -79,7 +79,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | archive | 9/9 | | Streams valid, H.264 or MP3. A track and an album row play at 1.00x with no buffering |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
 | facebook | 3/3 | | Streams valid, up to 1080p on the videos tried |
-| tiktok | 0/1 | `TRACK` varies | See below |
+| tiktok | 1/1 | | Plays at 1.02x with a Sky that sends its headers. See below |
 | opensubtitles | 1/1 | | |
 
 One kind of noise to know about when reading a run: during one stretch of a few minutes every query was slow enough to time out, including a local port. Right after that, 17 parallel runs of the same query were stable at about 5.3 s, so load does not explain it, and the cause is unknown. A surprising result is worth rerunning once.
@@ -183,16 +183,16 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 - **Last.fm:** removed in index 1.0.299. Every page answered a 3 KB challenge page, and its API needs a key. Youtube Music replaces it, for music search and audio covers.
 - **Youtube Music:** InnerTube `search` and `browse` on `music.youtube.com` with `WEB_REMIX`, no key needed. The `params` of a search pick songs, albums or artists. Tracks point at `www.youtube.com/watch?v=`, so playback, metadata and related stay with `youtube`. An album takes 1 request, and its tracks have no thumbnail of their own, so they get the album cover. An artist takes 2, because its page only lists the top songs, with a `VL` playlist for the rest when there is one. Thumbnails hold their size, so `w60-h60` can become `w544-h544`. Links to `music.youtube.com/watch` are not handled. From `sh test/youtubemusic.sh`, 2026-11-04: 0.6 to 1.2 s per query.
 - **IPTV:** iptv-org moved the logos out of `channels.json` to `logos.json`, 846 KB, so a search takes a third request since 1.0.10. About 1.4% of the logos are SVG, which may not display. A search matches channel ids, so `cnn` also finds `RCNNovelas`.
-- **TikTok:** unreliable for now, see below.
+- **TikTok:** see below.
 
 ### TikTok
 
-The backend uses the app API, and it fails often. We left it there for now, because the proper fix needs engine changes. All of this comes from `sh test/measure-tiktok.sh`, 2026-11-04.
+Since 1.0.10 the backend uses the web page, which requires Sky with the two changes below. All of this comes from `sh test/measure-tiktok.sh` and `sh test/tiktok.sh play`.
 
 | Route | Result |
 |---|---|
-| App API (`api16`), what the backend uses | HTTP 429 on 3 of 5 tries. It can also answer a generic feed of 300 to 600 KB without the requested video |
-| Web page | Metadata and `playAddr` in 406 KB, with the plain engine user agent |
+| App API (`api16`), the old route | HTTP 429 on 3 of 5 tries. It can also answer a generic feed of 300 to 600 KB without the requested video |
+| Web page | Metadata and `playAddr` in 86 KB compressed, 406 KB of text, with the plain engine user agent |
 | `oembed` | 543 bytes, title and author, no stream |
 | `player/v1`, `embed/v2` | No `playAddr` |
 
@@ -205,15 +205,14 @@ A stream from the web page depends on how it's requested:
 | curl with the page's cookies | HTTP 206 |
 | ffprobe with `-headers` holding `Cookie` and `Referer` | Opens, `h264 aac` |
 
-The backend plays the first video of whatever comes back, so a generic feed plays the wrong video. Checking the id stops that, but TikTok then fails most of the time: sources came through on 2 of 8 tries. That isn't a real fix, so the backend stays as it is until the web route is done.
+What it takes in Sky:
 
-The proper fix is the web route:
+1. A query with `cookies` gets the cookies of its response, and `EXTRACT_SOURCE` reads them as `cookie`. Only sources have it.
+2. `WFfmpegPlayer` sends the `header=<name>: <value>` entries of `options` as FFmpeg's `headers`. Anything else in `options` is still for VLC.
 
-1. In the engine, let scripts read the cookies a response sets. Scripts only see `data` today, and `cookies` only turns on the engine's own jar.
-2. In the engine, let `WFfmpegPlayer` apply request headers from `options`. They already reach its `setSource`, which ignores them, and `WBackendVlc` would need its own check.
-3. In the backend, read sources and metadata from the web page, and set a short `expiry`.
+An older Sky gets no cookies and doesn't send the headers, so its stream answers 403. So does the VLC engine for now, which has not been checked with these options.
 
-Open questions: how long the cookies last, whether they're tied to the IP, how seeking behaves, and whether some users get a challenge page, since yt-dlp has code to solve one. It also costs a 406 KB page per play.
+A track plays at 1.02x with no buffering, seek works, and metadata and sources take 1.2 s and 2 requests. Open questions: how long the cookies last, so `expiry` is half an hour for now, and whether some networks get a challenge page instead. yt-dlp has code to solve one and we got none, on 9 requests from one network. We don't solve them, such a play gets no source.
 
 ### Twitch live ads
 
@@ -229,4 +228,3 @@ Suggestions only.
 - Allow parallel requests in source flows, to race clients.
 - Expose response status and headers to scripts.
 - Expose download speed on the player, for playback tests.
-- For TikTok web streams: let scripts read the cookies a response sets, and let `WFfmpegPlayer` apply request headers from `options`. See the TikTok section.
