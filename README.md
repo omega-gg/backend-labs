@@ -14,7 +14,7 @@ Those extractors aim to list everything a site offers. We aim to reach the video
 | `manual.md` | How to run the tests |
 | `resync.md` | How to apply our changes to the public backend repository |
 | `implementation.md` | Technical findings |
-| `doc/plan/` | Plans |
+| `doc/` | Plans |
 | `test/` | CLI test suite for every backend, with a baseline for home connections and one for the CI |
 | `.github/` | CI workflow that runs the test suite |
 | `resync.lock` | Our commit and the public commit of the last resync |

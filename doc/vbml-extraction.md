@@ -21,7 +21,7 @@ backend-labs/
   resync.lock        our commit and the public commit of the last resync
   manual.md          how to run the tests
   implementation.md  technical findings
-  doc/plan/          copies of our plans
+  doc/               copies of our plans
   test/              CLI test suite: one script per backend, all.sh, common.sh, baselines
   .github/           CI workflow that runs the test suite
   vbml/              our backends, committed here
