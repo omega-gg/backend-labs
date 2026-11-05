@@ -19,6 +19,9 @@ test "TRACK AUDIO" "https://archive.org/details/gd1977-05-08.shure57.stevenson.2
 
 test "ALBUM" "https://archive.org/download/gd1977-05-08.shure57.stevenson.29303.flac16"
 
+# NOTE: An album with an artwork.
+test "ALBUM COVER" "https://archive.org/download/mdsw_20240622"
+
 # NOTE: An album of 104 files, each of them in several MP3 qualities.
 test "ALBUM SEVERAL" "https://archive.org/download/OTRR_Box_13_Singles"
 
