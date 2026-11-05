@@ -65,7 +65,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 
 | Backend | Queries passing | Failing | Streams and playback |
 | --- | --- | --- | --- |
-| youtube | 13/13 | | Streams valid. 4K60 and 1080p60 play at 1.00x with no buffering |
+| youtube | 15/15 | | Streams valid. 4K60 and 1080p60 play at 1.00x with no buffering |
 | youtubemusic | 8/8 | | Metadata only, tracks play through `youtube` |
 | tmdb | 10/10 | | Metadata only |
 | twitch | 8/8 | | HLS valid. Plays at 1.00x with no buffering |
@@ -76,7 +76,7 @@ From `sh test/all.sh stream` and `sh test/all.sh play`, 2026-11-04, on backends 
 | iptv | 1/1 | | |
 | odysee | 3/3 | | Streams valid. Very recent uploads can have no source yet |
 | soundcloud | 6/6 | | Streams valid |
-| archive | 8/8 | | Streams valid, H.264 or MP3. A track and an album row play at 1.00x with no buffering |
+| archive | 9/9 | | Streams valid, H.264 or MP3. A track and an album row play at 1.00x with no buffering |
 | vimeo | 1/2 | `TRACK`, no sources | Cannot play |
 | facebook | 3/3 | | Streams valid, up to 1080p on the videos tried |
 | tiktok | 0/1 | `TRACK` varies | See below |
@@ -86,12 +86,12 @@ One kind of noise to know about when reading a run: during one stretch of a few 
 
 ### On GitHub's servers
 
-First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the tests take 44 s. 53 of 78 cases pass. The differences with the table above:
+First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the tests take 44 s. A run of 2026-11-05 passes 77 of 86 cases, with Facebook, Odysee, Youtube Music and the Internet Archive all passing. The differences with the table above:
 
 - **youtube:** all 7 `TRACK` cases have no sources in both runs, while feeds, search and related pass. YouTube refuses the player request from GitHub's servers: `sh test/ci.sh measure` from the Actions tab gets `LOGIN_REQUIRED`, "Sign in to confirm you're not a bot", while the watch page still works. So YouTube sources and playback can only be tested from a home connection.
 
   The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
-- **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known.
+- **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known, and all 8 cases passed on 2026-11-05. That run's `TRACK LIVE` output had no track block, the same gap as locally.
 
 ## YouTube
 
@@ -158,6 +158,10 @@ The WEB client answers `UNPLAYABLE`, and still returns the title, author, channe
 
 On a network YouTube flags the request is refused, and there is no metadata, which is also what the watch page gives since 1.0.131.
 
+### Playlists and Topic channels
+
+Most playlist pages moved from `playlistVideoRenderer` to `lockupViewModel`, 9 of the 10 tried, and those came back with a title and no tracks until 1.0.133. Both layouts are in use, so the backend reads both. A new row runs from `"lockupViewModel":{` to `"contentType"`, with `contentId` and the title inside. A page gives its first 100 rows, and there is no paging for now: a playlist of 358 videos stops at 100. A Topic channel, like `Coldplay - Topic`, has no `Videos` tab: `/videos` serves its home with albums, so an empty feed goes on to its uploads playlist, `UU` instead of `UC` in the channel id, which takes a second request.
+
 ### Live
 
 Live sources come from a second request with the ANDROID client. `sh test/measure-youtube-live.sh` shows why: the VISIONOS manifest is `demuxed/1`, with video only and separate audio tracks, and the ANDROID one has both together. Skipping that request would save about 0.15 s, for parsing and syncing separate audio, so the backend keeps it. A live video plays 60 s at 1.00x with no buffering.
@@ -170,7 +174,7 @@ Live sources come from a second request with the ANDROID client. `sh test/measur
 
 - **Dailymotion:** 2 source requests. `"380"` is not a known quality key, so it becomes the default quality. No `expiry`.
 - **Vimeo:** sources are blocked from VBML for now, metadata and feeds work. With `sh test/measure-vimeo.sh`, 2026-11-04: the API `download` field was empty on all 5 public videos tried that exist, and `play`, `files` and `config_url` are empty for the viewer token. `player.vimeo.com` answers 403 from Cloudflare to curl and to the engine, and the video page has no `config_url`. yt-dlp gets through with TLS impersonation, which scripts can't do, or with saved login tokens: its app client can't fetch new ones. It required a login in 2025 and removed its `ios` and `macos` clients in 2026, so this keeps getting tighter.
-- **Internet Archive:** a public API, with no login. `metadata/<item>` lists the files, and can reach 300 KB on an item of 695 files, so search rows have no `state default`: they hold their title and author, and a list shows no duration. Sources go straight to the `d1` server of that answer, `download/` redirects to another server and took about 0.7 s more for the first 64 KB. On the searches tried, 7 of 8 film items hold one video, and 7 or 8 of 8 music and radio items hold several files, up to 1647. So `Tracks` searches `movies`, and `Albums` searches `audio` and opens `download/<item>` as a playlist in one request. An album row points at its MP3 on that server, with no backend and no request of its own beyond the engine's text probe. That server can answer 301 to another one, which FFmpeg follows. A video item with several videos only plays its first one, and so does an audio item opened through `details/<item>`. An item can hold nothing we can play, like a single RAR file, so both searches ask for the formats we use. On the 5 searches tried, that removed only items with no such file. Original MPEG-2 files stay out, their heights aren't sizes Sky knows. `services/img/<item>` is 180 pixels wide, and an audio waveform when an item has no artwork, which we keep over no cover at all. No larger image exists for films, whose thumbnails are 160x110, but an album uses its `JPEG` file when it has one, 331x325 and 563x537 on two albums. Some items answer 403. See `sh test/measure-archive.sh`.
+- **Internet Archive:** a public API, with no login. `metadata/<item>` lists the files, and can reach 300 KB on an item of 695 files, so search rows have no `state default`: they hold their title and author, and a list shows no duration. Sources go straight to the `d1` server of that answer, `download/` redirects to another server and took about 0.7 s more for the first 64 KB. On the searches tried, 7 of 8 film items hold one video, and 7 or 8 of 8 music and radio items hold several files, up to 1647. So `Tracks` searches `movies`, and `Albums` searches `audio` and opens `download/<item>` as a playlist in one request. An album row points at its MP3 on that server, with no backend and no request of its own beyond the engine's text probe. That server can answer 301 to another one, which FFmpeg follows. A video item with several videos only plays its first one, and so does an audio item opened through `details/<item>`. An item can hold nothing we can play, like a single RAR file, so both searches ask for the formats we use. On the 5 searches tried, that removed only items with no such file. Original MPEG-2 files stay out, their heights aren't sizes Sky knows. `services/img/<item>` is 180 pixels wide, and an audio waveform when an item has no artwork, which we keep over no cover at all. No larger image exists for films, whose thumbnails are 160x110, but an album uses its `JPEG` file when it has one, 331x325 and 563x537 on two albums. Some items answer 403. A track's feed is a creator search, `search?query=creator:"<name>"`, on the name before the first comma. In a feed, an album row still plays its first file. A generic name like `Various` gives unrelated items. See `sh test/measure-archive.sh`.
 - **Odysee:** a video has HLS, its file, or neither for now. Recent uploads answer 404 `transcoding is in progress` for HLS and 401 for the file. A referer doesn't clear that: the file then answers 429 `Try again later`, which still held after 45 s on one video. A file in the CDN's cache plays without one, so a video can work after being refused. The file can be refused when HLS works, so since 1.0.10 it's only a fallback, at `v6/streams/<id>/<hash6>.mp4`, the URL of the API's `get`. The old `api/v3/streams/free` URL was refused where that one works. See `sh test/measure-odysee.sh`.
 - **Twitch:** 2 source requests, GQL playback token then usher m3u8. No `expiry`. Video metadata comes from GQL since 1.0.31: `sh test/measure-twitch.sh` gets 437 bytes and 0 of 10 failures where the page was 80 KB and came back empty 1 time in 10, which made the backend retry up to 10 times. Channels use GQL too since 1.0.33: their page lists clips as `VideoObject`, so the backend took any channel with clips as live, with the clip description in the title and a broken feed.
 

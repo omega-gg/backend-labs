@@ -1,11 +1,12 @@
-archive	ALBUM	OK	1675	1
-archive	ALBUM COVER	OK	1343	1
-archive	ALBUM SEVERAL	OK	2204	1
-archive	SEARCH ALBUMS	OK	2013	1
-archive	SEARCH TRACKS	OK	2143	1
-archive	TRACK	OK	2215	2
-archive	TRACK AUDIO	OK	1775	2
-archive	TRACK FOLDER	OK	1264	2
+archive	ALBUM	OK	1466	1
+archive	ALBUM COVER	OK	1017	1
+archive	ALBUM SEVERAL	OK	1573	1
+archive	FEED	OK	1100	1
+archive	SEARCH ALBUMS	OK	1036	1
+archive	SEARCH TRACKS	OK	1086	1
+archive	TRACK	OK	1209	2
+archive	TRACK AUDIO	OK	1691	2
+archive	TRACK FOLDER	OK	1394	2
 dailymotion	FEED	OK	1140	2
 dailymotion	RELATED	OK	1022	1
 dailymotion	SEARCH CHANNELS	OK	1169	1
@@ -70,32 +71,21 @@ twitter	TRACK	OK	1743	4
 twitter	TRACK video 720	OK	1109	
 vimeo	FEED	OK	2122	3
 vimeo	TRACK	FAIL	1644	4
-youtube	FEED	OK	863	1
-youtube	FEED WEIRD	OK	866	1
-youtube	RELATED	OK	3221	2
-youtube	SEARCH CHANNELS	OK	1034	1
-youtube	SEARCH PLAYLISTS	OK	964	1
-youtube	SEARCH TRACKS	OK	1252	1
-youtube	TRACK	OK	2860	3
-youtube	TRACK 1080	OK	2036	3
-youtube	TRACK 1080 audio	OK	94	
-youtube	TRACK 1080 video 1080	OK	134	
-youtube	TRACK 4K	OK	2089	3
-youtube	TRACK 4K audio	OK	93	
-youtube	TRACK 4K video 2160	OK	98	
-youtube	TRACK DISNEY	OK	1641	3
-youtube	TRACK DISNEY audio	OK	83	
-youtube	TRACK DISNEY video 720	OK	88	
-youtube	TRACK HDR	OK	1692	3
-youtube	TRACK HDR audio	OK	105	
-youtube	TRACK HDR video 2160	OK	86	
-youtube	TRACK LIVE	OK	1987	5
-youtube	TRACK LIVE video 1080	OK		
-youtube	TRACK LOCKED	OK	2184	3
-youtube	TRACK LOCKED audio	OK	89	
-youtube	TRACK LOCKED video 1080	OK	88	
-youtube	TRACK audio	OK	105	
-youtube	TRACK video 1080	OK	108	
+youtube	FEED	OK	693	1
+youtube	FEED TOPIC	OK	1267	2
+youtube	FEED WEIRD	OK	789	1
+youtube	PLAYLIST	OK	993	1
+youtube	RELATED	OK	2202	2
+youtube	SEARCH CHANNELS	OK	825	1
+youtube	SEARCH PLAYLISTS	OK	823	1
+youtube	SEARCH TRACKS	OK	1120	1
+youtube	TRACK	OK	603	3
+youtube	TRACK 1080	OK	667	3
+youtube	TRACK 4K	OK	664	3
+youtube	TRACK DISNEY	OK	567	3
+youtube	TRACK HDR	OK	611	3
+youtube	TRACK LIVE	OK	1038	5
+youtube	TRACK LOCKED	OK	604	3
 youtubemusic	ALBUM	OK	1035	1
 youtubemusic	ARTIST	OK	1180	2
 youtubemusic	ARTIST TOP SONGS	OK	732	1
