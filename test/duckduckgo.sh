@@ -15,13 +15,14 @@ test "SEARCH URLS" "vbml:run?backend=duckduckgo&method=search&label=urls&q=chill
 # NOTE DuckDuckGo: We wait to avoid being blocked.
 sleep 5
 
-test "SEARCH SITE" \
-     "vbml:run?backend=duckduckgo&method=search&label=site&q=site:https://youtube.com chillwave"
+test "SEARCH TRACKS A" "vbml:run?backend=duckduckgo&method=search&label=tracks&q=chillwave"
 
 # NOTE DuckDuckGo: We wait to avoid being blocked.
 sleep 5
 
-test "SEARCH TRACKS A" "vbml:run?backend=duckduckgo&method=search&label=tracks&q=chillwave"
+# NOTE DuckDuckGo: The html searches stay apart, two of them 8 s apart get a challenge on the CI.
+test "SEARCH SITE" \
+     "vbml:run?backend=duckduckgo&method=search&label=site&q=site:https://youtube.com chillwave"
 
 # NOTE DuckDuckGo: We wait to avoid being blocked.
 sleep 5
