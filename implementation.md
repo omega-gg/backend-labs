@@ -92,7 +92,7 @@ First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the te
 
   The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
 - **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known, and all 8 cases passed on 2026-11-05. That run's `TRACK LIVE` output had no track block, the same gap as locally.
-- **2026-11-20:** duckduckgo `SEARCH SITE`, youtube `RELATED` and `SEARCH CHANNELS`, and tiktok `FEED HASHTAGS` failed with no entries, and all passed locally. The next run only failed `SEARCH SITE`, about 8 s after the previous `html.duckduckgo.com` search, while `SEARCH PLAYLISTS` passed about 20 s after one. That page answers quick series of requests with a challenge and no results, probably what the CI got, so the test now keeps those searches about 15 s apart.
+- **2026-11-20:** duckduckgo `SEARCH SITE`, youtube `RELATED` and `SEARCH CHANNELS`, and tiktok `FEED HASHTAGS` failed with no entries, and all passed locally. Only `SEARCH SITE` failed again in the next two runs, even 15 s away from the other DuckDuckGo searches, and it passes locally with the same clientVBML build. DuckDuckGo seems to treat `site:` searches from GitHub's servers differently, so it's `FAIL` in `baseline-ci.tsv`.
 
 ## YouTube
 
