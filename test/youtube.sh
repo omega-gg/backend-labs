@@ -28,10 +28,11 @@ test "FEED" "https://www.youtube.com/channel/UCZyXa4H06Ws3Pwom9cYEdDA"
 
 test "FEED WEIRD" "https://www.youtube.com/@the.drum.thing."
 
-# NOTE: A Topic channel has no videos page.
-test "FEED TOPIC" "https://www.youtube.com/channel/UCIaFw5VBEK8qaW6nRpx_qnw"
+# NOTE: Most Topic channels have an empty feed now, this one still has a videos page.
+test "FEED TOPIC" "https://www.youtube.com/channel/UC6cR6PjzEYVXPA9JbZQj5Ig"
 
-test "PLAYLIST" "https://www.youtube.com/playlist?list=UUIaFw5VBEK8qaW6nRpx_qnw"
+# NOTE: The uploads of the FEED channel.
+test "PLAYLIST" "https://www.youtube.com/playlist?list=UUZyXa4H06Ws3Pwom9cYEdDA"
 
 test "RELATED" "vbml:run?backend=youtube&method=related&label=tracks&q=wOMwO5T3yT4"
 
