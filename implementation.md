@@ -92,7 +92,7 @@ First two CI runs, 2026-11-04: `clientVBML` builds in about 6 minutes and the te
 
   The watch page it serves there has no `videoDetails`, and `EXTRACT_TRACK` then returns wrong metadata: for `aqz-KE-bpKQ` the title is `"simpleText":"Big Buck Bunny...` and the author is `@randmstrnger176`, which looks like a commenter rather than the channel. The feed is empty, and there is no cover, duration or date. Local runs are clean, so this should only affect networks YouTube flags. Since 1.0.131, `EXTRACT_TRACK` returns no metadata when `channelId` is missing from `videoDetails`.
 - **twitch:** `TRACK LIVE` crashed clientVBML once with exit code 139, and passes locally. The cause is not known, and all 8 cases passed on 2026-11-05. That run's `TRACK LIVE` output had no track block, the same gap as locally.
-- **2026-11-20:** duckduckgo `SEARCH SITE`, youtube `RELATED` and `SEARCH CHANNELS`, and tiktok `FEED HASHTAGS` failed with no entries, and all passed locally. Only `SEARCH SITE` failed again in the next two runs, even 15 s away from the other DuckDuckGo searches, and it passes locally with the same clientVBML build. DuckDuckGo seems to treat `site:` searches from GitHub's servers differently, so it's `FAIL` in `baseline-ci.tsv`.
+- **2026-11-20:** duckduckgo `SEARCH SITE`, youtube `RELATED` and `SEARCH CHANNELS`, and tiktok `FEED HASHTAGS` failed with no entries, and all passed locally. Only `SEARCH SITE` failed again in the next two runs, even 15 s away from the other DuckDuckGo searches, and it passes locally with the same clientVBML build. DuckDuckGo seems to treat `site:` searches from GitHub's servers differently, so it's `FAIL` in `baseline-ci.tsv`. `SEARCH CHANNELS` was the search layout described under YouTube. `RELATED` failed again on 2026-11-21 and passed 20 of 20 locally.
 
 ## YouTube
 
@@ -164,6 +164,8 @@ On a network YouTube flags the request is refused, and there is no metadata, whi
 Most playlist pages moved from `playlistVideoRenderer` to `lockupViewModel`, 9 of the 10 tried, and those came back with a title and no tracks until 1.0.133. Both layouts are in use, so the backend reads both. A new row runs from `"lockupViewModel":{` to `"contentType"`, with `contentId` and the title inside. A page gives its first 100 rows, and there is no paging for now: a playlist of 358 videos stops at 100. A Topic channel, like `Coldplay - Topic`, has no `Videos` tab: `/videos` serves its home with albums, so an empty feed goes on to its uploads playlist, `UU` instead of `UC` in the channel id, which takes a second request.
 
 By 2026-11-20 that playlist was gone, "La playlist n'existe pas", for all 11 Topic channels tried without a `Videos` tab, and so were `UULF`, `UUMO` and `UUSH`. Their feed has a title, a cover and no tracks. Most of their album tracks now belong to the official artist channel, and their page only lists albums, which a feed of tracks can't show. yt-dlp tries the same playlist and gives an empty one too, so we keep that behavior. `Adele - Topic` still has a `Videos` tab, so `FEED TOPIC` uses it.
+
+Searches are moving the same way. On 2026-11-21, about 1 search in 15 to 20 listed its videos or channels as `lockupViewModel` rows, `LOCKUP_CONTENT_TYPE_VIDEO` or `LOCKUP_CONTENT_TYPE_CHANNEL`, and came back empty until 1.0.134, locally and on the CI. curl never got that layout, the engine did. A row holds an earlier `"contentType"` in its metadata, so a search row ends at `"contentType":"LOCKUP`.
 
 ### Live
 

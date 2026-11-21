@@ -9,7 +9,7 @@ origin: https://raw.githubusercontent.com/omega-gg/backend/master/youtube.vbml
 
 api: 1.0.1
 
-version: 1.0.133
+version: 1.0.134
 
 title: Youtube
 
@@ -580,6 +580,19 @@ EXTRACT_PLAYLIST: |
             HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
             LIST_APPEND tracks track
         END
+        # NOTE: Some pages list the videos as 'lockupViewModel'.
+        IF (EQUAL (COUNT tracks) 0)
+            SET list (SLICES data "\"lockupViewModel\":{" "\"contentType\":\"LOCKUP")
+            FOREACH list value
+                SET id (JSON_EXTRACT value "contentId")
+                SET index (INDEX_OF value "\"lockupMetadataViewModel\"")
+                HASH_SET track "state" "default"
+                HASH_SET track "source" (APPEND "https://www.youtube.com/watch?v=" id)
+                HASH_SET track "title" (JSON_EXTRACT_UTF8 value "content" index)
+                HASH_SET track "cover" (APPEND "https://i.ytimg.com/vi/" id "/maxresdefault.jpg")
+                LIST_APPEND tracks track
+            END
+        FI
         IF (EQUAL queryData "")
             SET index (INDEX_OF data "class=\"branded-page-box search-pager")
             IF (EQUAL index -1)
@@ -670,6 +683,22 @@ EXTRACT_FOLDER: |
             HASH_SET item "cover" (APPEND "https:" cover)
             LIST_APPEND items item
         END
+        # NOTE: Some pages list the channels as 'lockupViewModel'.
+        IF (EQUAL (COUNT items) 0)
+            SET list (SLICES data "\"lockupViewModel\":{" "\"contentType\":\"LOCKUP")
+            FOREACH list value
+                SET id (JSON_EXTRACT value "canonicalBaseUrl")
+                SET cover (JSON_EXTRACT_UTF8 value "url")
+                SET cover (MID cover 0 (INDEX_OF cover '='))
+                SET index (INDEX_OF value "\"lockupMetadataViewModel\"")
+                HASH_SET item "type" "feed"
+                HASH_SET item "state" "default"
+                HASH_SET item "source" (APPEND "https://www.youtube.com" id)
+                HASH_SET item "title" (JSON_EXTRACT_UTF8 value "content" index)
+                HASH_SET item "cover" (APPEND "https:" cover)
+                LIST_APPEND items item
+            END
+        FI
     ELSE # Search playlists
         SET list (SLICES data "\"lockupViewModel\"" "}}}}}}")
         FOREACH list value
