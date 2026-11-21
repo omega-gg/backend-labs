@@ -171,7 +171,7 @@ Searches are moving the same way. On 2026-11-21, about 1 search in 15 to 20 list
 
 Live sources come from a second request with the ANDROID client. `sh test/measure-youtube-live.sh` shows why: the VISIONOS manifest is `demuxed/1`, with video only and separate audio tracks, and the ANDROID one has both together. Skipping that request would save about 0.15 s, for parsing and syncing separate audio, so the backend keeps it. A live video plays 60 s at 1.00x with no buffering.
 
-### Known issues in youtube.vbml 1.0.132
+### Known issues in youtube.vbml
 
 - The comment above the `UNPLAYABLE` fallback mentions `ANDROID_VR`, and the code uses ANDROID.
 
